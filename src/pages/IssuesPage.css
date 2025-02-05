@@ -1,0 +1,21 @@
+.issues-page {
+    height: 85%;
+    width: 98%;
+    padding: 1%;
+}
+
+.issues-page .issues-header {
+    display: flex;
+    justify-content: space-between;
+}
+
+.issues-page .issues-div {
+    height: 85%;
+    background-color: lightgrey;
+    padding: 1%;
+}
+
+.issues-page .issues-div .issue-div {
+    background-color: white;
+    padding: 1%;
+}
