@@ -11,7 +11,7 @@ npm run dev
 
 ## Backend
 ```
-cd Backend
+cd backend
 npm install
 node server.js
 ```
