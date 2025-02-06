@@ -2,5 +2,15 @@
 
 Pull this repository and run the following commands to set it up in development environment
 
-`npm install`
-`npm run dev`
+## Frontend
+```
+cd frontend
+npm install
+npm run dev
+```
+
+## Backend
+```
+cd Backend
+node server.js
+```
