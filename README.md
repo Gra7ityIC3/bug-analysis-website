@@ -15,3 +15,7 @@ cd Backend
 npm install
 node server.js
 ```
+
+Currently the website fetches all issues from Github Issues on every load of the frontend through Github API.
+This does not work for long as there is a upper limit for Github API use.
+The database must be implemented next to prevent calling the Github API on every load.
