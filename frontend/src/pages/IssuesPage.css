@@ -13,9 +13,12 @@
     height: 85%;
     background-color: lightgrey;
     padding: 1%;
+    overflow-y: scroll;
+    overflow-x: hidden;
 }
 
 .issues-page .issues-div .issue-div {
     background-color: white;
     padding: 1%;
+    margin-bottom: 1%;
 }
