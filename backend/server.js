@@ -1,34 +1,34 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require("cors");
-const mongoose = require('mongoose');
+const mysql = require('mysql2');
 const bodyParser = require('body-parser');
 const axios = require("axios");
-const cheerio = require("cheerio");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
+// Middleware to parse JSON
 app.use(bodyParser.json());
+// app.use(express.json());
 // Enable CORS for all requests
 app.use(cors());
 
-// MongoDB connection
-const mongoURI = process.env.MONGO_URI || 'mongodb://localhost:27017/' //Add database name behind url;
-mongoose
-  .connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log('MongoDB Connected'))
-  .catch((err) => console.error(err));
-
-// Define Issue model
-const IssueSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  description: { type: String, required: true },
-  date: { type: Date, default: Date.now },
+// Database connection
+const db = mysql.createConnection({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
 });
 
-const Issue = mongoose.model('Issue', IssueSchema);
+db.connect((err) => {
+  if (err) {
+    console.error('Error connecting to MySQL:', err.message);
+    return;
+  }
+  console.log('Connected to MySQL database.');
+});
 
 // Routes
 app.get("/github_issues", async (req, res) => {
@@ -65,30 +65,42 @@ app.get("/github_issues", async (req, res) => {
   }
 });
 
+// Get all issues
 app.get('/issues', async (req, res) => {
   try {
-    const issues = await Issue.find();
+    const [issues] = await db.query('SELECT * FROM issues');
     res.json(issues);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
+// Create a new issue
 app.post('/issue', async (req, res) => {
   try {
     const { title, description, date } = req.body;
-    const newIssue = new Issue({ title, description, date });
-    await newIssue.save();
-    res.status(201).json(newIssue);
+    const [result] = await db.query(
+      'INSERT INTO issues (title, description, date) VALUES (?, ?, ?)',
+      [title, description, date]
+    );
+
+    res.status(201).json({ id: result.insertId, title, description, date });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
+// Delete an issue given its id
 app.delete('/issue/:id', async (req, res) => {
   try {
-    const deletedIssue = await Issue.findByIdAndDelete(req.params.id);
-    res.json(deletedIssue);
+    const { id } = req.params;
+    const [result] = await db.query('DELETE FROM issues WHERE id = ?', [id]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Issue not found' });
+    }
+
+    res.json({ message: 'Issue deleted successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
