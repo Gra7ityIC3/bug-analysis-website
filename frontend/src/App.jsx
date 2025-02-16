@@ -6,8 +6,8 @@ import IssuesPage from './pages/IssuesPage'
 function App() {
   return (
     <>
-      <Header/>
       <BrowserRouter>
+        <Header/>
         <Routes>
           <Route path="/" element={<IssuesPage />} />
         </Routes>

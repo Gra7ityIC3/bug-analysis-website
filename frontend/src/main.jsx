@@ -5,6 +5,7 @@ import App from './App.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
+    <link href="/src/styles.css" rel="stylesheet" />
     <App />
   </StrictMode>,
 )
