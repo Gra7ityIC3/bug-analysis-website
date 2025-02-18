@@ -1,112 +1,95 @@
-import { useState, useEffect, useMemo } from 'react'
-import axios from 'axios'
+import { useState, useEffect, useMemo } from 'react';
+import axios from 'axios';
+import { Tooltip } from "@mui/material";
+import { format } from 'date-fns';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   MaterialReactTable,
   useMaterialReactTable,
 } from 'material-react-table';
 
 function IssuesPage() {
-    // useEffect(() => {
-  //   axios.get("http://127.0.0.1:5000/github_issues?datetime=2025-01-15T00:00:00Z")
-  //   .then((resp) => setIssues(resp.data.issues))
-  //   .catch(error => console.log(error))
-  // }, [])
-  
-  const data = [
-    {
-      title: 'Index Corruption in PostgreSQL',
-      database: 'PostgreSQL',
-      date: '2025-02-10',
-      state: 'Open',
-      description: 'Indexes become corrupted after multiple concurrent updates.',
-      link: 'https://bugs.example.com/pg-index-corruption'
-    },
-    {
-      title: 'MySQL Deadlock on Insert',
-      database: 'MySQL',
-      date: '2025-01-25',
-      state: 'Resolved',
-      description: 'Deadlocks occur when inserting into a table with foreign keys.',
-      link: 'https://bugs.example.com/mysql-insert-deadlock'
-    },
-    {
-      title: 'MongoDB Aggregation Performance Regression',
-      database: 'MongoDB',
-      date: '2025-02-05',
-      state: 'In Progress',
-      description: 'Aggregation queries are slower in version 6.0 compared to 5.0.',
-      link: 'https://bugs.example.com/mongo-agg-performance'
-    },
-    {
-      title: 'SQL Server Memory Leak on Large Joins',
-      database: 'SQL Server',
-      date: '2025-02-12',
-      state: 'Open',
-      description: 'Memory usage increases significantly when running complex joins.',
-      link: 'https://bugs.example.com/sqlserver-memory-leak'
-    },
-    {
-      title: 'Oracle Deadlock Issue with PL/SQL Procedures',
-      database: 'Oracle',
-      date: '2025-01-30',
-      state: 'Resolved',
-      description: 'PL/SQL procedures intermittently cause deadlocks in multi-user environments.',
-      link: 'https://bugs.example.com/oracle-plsql-deadlock'
-    },
-  ];
+  const [issues, setIssues] = useState([]);
 
-  const [tableData] = useState(data)
+  useEffect(() => {
+    axios.get('http://localhost:5000/github_issues')
+      .then(response => setIssues(response.data.issues))
+      .catch(error => console.error('Error fetching issues:', error));
+  }, []);
 
   const columns = useMemo(
     () => [
       {
         accessorKey: 'title',
         header: 'Title',
-        size: 200,
+        size: 400,
       },
       {
-        accessorKey: 'database',
-        header: 'Database',
+        accessorKey: 'dbms',
+        header: 'DBMS',
         size: 150,
       },
       {
-        accessorKey: 'date',
-        header: 'Date posted',
+        accessorKey: 'status',
+        header: 'Status',
         size: 150,
       },
       {
-        accessorKey: 'state',
-        header: 'State',
+        accessorKey: 'created_at',
+        header: 'Date Posted',
         size: 150,
-      },
-      {
-        accessorKey: 'description',
-        header: 'Description',
-        size: 200,
+        Cell: ({ cell }) => {
+          const date = new Date(cell.getValue());
+          return (
+            <Tooltip title={format(date, 'MMM d, yyyy, h:mm a z')}>
+              <span>{format(date, 'MMM d, yyyy')}</span>
+            </Tooltip>
+          );
+        },
       },
       {
         accessorKey: 'link',
         header: 'Link',
         size: 150,
+        Cell: ({ cell }) => <a href={cell.getValue()} target="_blank">{cell.getValue()}</a>,
       },
     ],
-    [],
+    []
   );
 
   const table = useMaterialReactTable({
     columns,
-    data: tableData, //data must be memoized or stable (useState, useMemo, defined outside of this component, etc.)
+    data: issues,
+    enableRowNumbers: true,
+    rowNumberDisplayMode: 'original',
+    displayColumnDefOptions: {
+      'mrt-row-numbers': {
+        Header: 'ID', // header: 'ID' doesn't work
+      },
+    },
+    enableExpandAll: false,
+    renderDetailPanel: ({ row }) => (
+      <div style={{ padding: '1rem', background: '#f9f9f9' }}>
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          {row.original.description || 'No description provided.'}
+        </ReactMarkdown>
+      </div>
+    ),
+    muiExpandButtonProps: ({ row, table }) => ({
+      onClick: () => table.setExpanded({ [row.id]: !row.getIsExpanded() }), // set only this row to be expanded
+      style: { outline: 'none' },
+    }),
   });
 
   return (
-    <div class='p-2'>
-      <div class='flex justify-between mb-2'>
-        <h2 class='font-bold'>Issues Found</h2>
+    <div className="p-2">
+      <div className="flex justify-between mb-2">
+        <h2 className="font-bold">Issues Found</h2>
       </div>
-      
       <MaterialReactTable table={table} />
     </div>
-  )
+  );
 }
 
-export default IssuesPage
+export default IssuesPage;
