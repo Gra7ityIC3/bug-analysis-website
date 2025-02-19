@@ -1,5 +1,6 @@
 {
   "name": "backend",
+  "type": "module",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -10,6 +11,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@octokit/rest": "^21.1.1",
     "axios": "^1.7.9",
     "body-parser": "^1.20.3",
     "cheerio": "^1.0.0",
@@ -17,6 +19,8 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "mongoose": "^8.10.0",
-    "mysql2": "^3.12.0"
+    "mysql2": "^3.12.0",
+    "openai": "^4.85.1",
+    "zod": "^3.24.2"
   }
 }
