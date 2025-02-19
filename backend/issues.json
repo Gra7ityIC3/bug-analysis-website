@@ -1,0 +1,162 @@
+[
+  {
+    "title": "[SQLancer][YSQL] ORDER BY DESC may read deleted values from the table with UNIQUE DEFAULT columns, when fast backward scans is used",
+    "description": "Jira Link: [DB-15387](https://yugabyte.atlassian.net/browse/DB-15387)\r\n### Description\n\nFirst select return 0 rows, while second one will return `2` (value from INSERT)\n```\nCREATE TABLE t1(c0 int UNIQUE DEFAULT 1);\nINSERT INTO t1(c0) VALUES (2);\nDELETE FROM t1;\nSELECT * FROM t1;\nSELECT * FROM t1 GROUP BY t1.c0 ORDER BY t1.c0 DESC;\n```\n\n### Issue Type\n\nkind/bug\n\n### Warning: Please confirm that this issue does not contain any sensitive information\n\n- [x] I confirm this issue does not contain any sensitive information.\n\n[DB-15387]: https://yugabyte.atlassian.net/browse/DB-15387?atlOrigin=eyJpIjoiNWRkNTljNzYxNjVmNDY3MDlhMDU5Y2ZhYzA5YTRkZjUiLCJwIjoiZ2l0aHViLWNvbS1KU1cifQ",
+    "dbms": "YSQL",
+    "status": "Open",
+    "created_at": "2025-02-15T01:07:09Z",
+    "link": "https://github.com/yugabyte/yugabyte-db/issues/26060"
+  },
+  {
+    "title": "Calculate the LCOM (Lack of Cohesion of Methods), Efferent Coupling (Ce), Afferent Coupling (Ca) metrics for SQLancer",
+    "description": "Working on calculating metrics. Looking at using codemetrics4j that includes Ca, Ce and LCOM.",
+    "dbms": "SQLancer",
+    "status": "Not a bug",
+    "created_at": "2025-02-13T06:58:45Z",
+    "link": "https://github.com/yorklim/CS3213_Team_17/issues/40"
+  },
+  {
+    "title": "Enable mocking of SQLancer for testing",
+    "description": "refer to user story #3",
+    "dbms": "Generic",
+    "status": "Not a bug",
+    "created_at": "2025-02-10T04:33:01Z",
+    "link": "https://github.com/CS3213-T6-1/sqlancer/issues/27"
+  },
+  {
+    "title": "Calculating metrics for sqlancer from SonarQube or any tool that works",
+    "description": "To calculate `LCOM`, `Ca` and `Ce` using appropriate tools available.",
+    "dbms": "N/A",
+    "status": "Not a bug",
+    "created_at": "2025-02-10T04:23:36Z",
+    "link": "https://github.com/CS3213-T6-1/sqlancer/issues/25"
+  },
+  {
+    "title": "sql-queries: 25.2 release checklist",
+    "description": "This issue captures a series of tests and steps that we need to run when 25.1 is getting close to being finalized.\n\n - [ ] check and update private opt tests repository\n - [ ] check regressions in microbenchmarks\n - [ ] run all tests with `fast_int_set_small` tag: `./dev test -- --define gotags=bazel,gss,fast_int_set_small`\n - [ ] run all tests with `fast_int_set_large` tag: `./dev test -- --define gotags=bazel,gss,fast_int_set_large`\n - [ ] clone an instance of this issue for the next release\n - [ ] check the SQL Queries \"Active\" and \"Release XX.X\" buckets for issues that we'd really like to get into the release\n - [ ] upgrade https://github.com/sqlancer/sqlancer to the latest version of CRDB\n\n\n\nJira issue: CRDB-44093\n\nJira issue: CRDB-47296",
+    "dbms": "CRDB",
+    "status": "Not a bug",
+    "created_at": "2025-02-07T16:33:51Z",
+    "link": "https://github.com/cockroachdb/cockroach/issues/140682"
+  },
+  {
+    "title": "Rewrite `datafusion-sqlancer` in Rust",
+    "description": "### Is your feature request related to a problem or challenge?\n\nThis a project idea for GSoC 2025 https://github.com/apache/datafusion/issues/14478\n\n`datafusion-sqlancer` is a SQL level fuzz testing implementation for DataFusion. https://github.com/apache/datafusion/issues/11030\n\n## Current implementation status\n`datafusion-sqlancer` has covered partial SQL features, and data types, and implemented 3 relatively simple testing oracles[^1]. With occasional manual runs, around 50 bugs have been found.\nThe implementation is in Java, and it's a fork of the original [SQLancer](https://github.com/sqlancer/sqlancer).\n\n## Why rewrite in Rust\nThe SQLancer was first implemented in Java for very good reasons: it has to test the effectiveness of several testing oracles on many major databases, JDBC is a common interface.\nDataFusion's SQLancer implementation now is done by extending SQLancer framework, it has saved us some effort to do CLI parsing, result comparison, etc.\n\nThere are several reasons I think it's a good idea to rewrite in Rust at this point:\n- (major) **Making test oracles also apply to `sqllogictests`**\n  `datafusion-sqlancer` consists of two modules: random query generation, and property validation for test oracles. Those properties can also be applied to enhance existing [SQL tests](https://github.com/apache/datafusion/tree/main/datafusion/sqllogictest). If we have those properties implemented in Rust, enhancing existing `sqllogictest`s would be easier. \n  Now only 3 simple test oracles have been implemented, and I believe there are around 10 novel SQL testing algorithms have been proposed, one example is `Equivalent Expression Transformation`(https://www.usenix.org/conference/osdi24/presentation/jiang). EET I think is very suitable to enhance existing SQL tests.\n  Overall, I think it's a good time to switch to native rust implementation before implementing more complex testing algorithms.\n- **Simplier implementation**\n  One thing we simplify is now we don't have to use JDBC to connect the testing framework and DataFusion core, configuration fuzzing can be easier, and there might be some existing code we can reuse.\n- **More contributors**\n  DataFusion ecosystem is mainly in Rust, IMO it would be easier to find people to help if the testing framework is written in Rust instead of Java.\n  \n\n\n[^1]: https://github.com/apache/datafusion/issues/11030 has a minimal example for testing oracle `NoREC`\n\n### Describe the solution you'd like\n\nSee https://github.com/apache/datafusion/issues/11030 for the background\n- Generate random query to a datafusion internal data structure (perhaps `Statement`)\n- Implement testing oracles. In order to support also running with existing SQL tests, we might want:\n  - For query mutation: mutate the query's internal representation, and convert it back to SQL string\n  - For property check: implement by extending `sqllogictest` framework\n\n### Describe alternatives you've considered\n\nThe project idea proposed above I believe is advanced in terms of difficulty. \nA medium level project can be extending existing implementation with more SQL/types support, and implement more test oracles, also with better CI integration.\n\n### Additional context\n\n_No response_",
+    "dbms": "DataFusion",
+    "status": "Not a bug",
+    "created_at": "2025-02-07T04:42:05Z",
+    "link": "https://github.com/apache/datafusion/issues/14535"
+  },
+  {
+    "title": "[DocDB] tserver ResourceArrayEnlarge core dump occurred in SQLancer runs multiple times in master",
+    "description": "Jira Link: [DB-15195](https://yugabyte.atlassian.net/browse/DB-15195)\r\n### Description\n\nCore occurred multiple times during SQLancer test evaluation in latest master branch\n\n```\n(lldb) target create \"/home/yugabyte/tserver/bin/yb-tserver\" --core \"/home/yugabyte/cores/core_yb.1738720442.rpc_tp_TabletSe.29091.45032\"\nCore file '/home/yugabyte/cores/core_yb.1738720442.rpc_tp_TabletSe.29091.45032' (aarch64) was loaded.\n(lldb) bt all\n* thread #1, name = 'yb-tserver', stop reason = signal SIGSEGV\n  * frame #0: 0x0000aaaadde90600 yb-tserver`ResourceArrayEnlarge(resarr=0x0000000000000160) at resowner.c:227:14\n    frame #1: 0x0000aaaaddf4d20c yb-tserver`pg_cryptohash_create [inlined] ResourceOwnerEnlargeCryptoHash(owner=<unavailable>) at resowner.c:1475:2\n    frame #2: 0x0000aaaaddf4d204 yb-tserver`pg_cryptohash_create(type=PG_MD5) at cryptohash_openssl.c:107:2\n    frame #3: 0x0000aaaaddf50974 yb-tserver`pg_md5_hash(buff=0x000005b8b2ea5ff4, len=10, hexsum=\"\", errstr=0x0000ffff9eaa48c8) at md5_common.c:79:8\n    frame #4: 0x0000aaaaddd211b4 yb-tserver`md5_text(fcinfo=<unavailable>) at cryptohashfuncs.c:44:6\n    frame #5: 0x0000aaaaddea613c yb-tserver`evalExpr(ctx=<unavailable>, expr=<unavailable>, is_null=<unavailable>) at ybgate_api.c:232:21\n    frame #6: 0x0000aaaaddea6108 yb-tserver`evalExpr(ctx=<unavailable>, expr=<unavailable>, is_null=<unavailable>) at ybgate_api.c:220:30\n    frame #7: 0x0000aaaaddea6108 yb-tserver`evalExpr(ctx=<unavailable>, expr=<unavailable>, is_null=<unavailable>) at ybgate_api.c:220:30\n    frame #8: 0x0000aaaaddea5b84 yb-tserver`YbgEvalExpr(expr=0x000005b8b85fcd20, expr_ctx=0x000005b8b2ea54b8, datum=0x0000ffff9eaa4c90, is_null=0x0000ffff9eaa4c8c) at ybgate_api.c:550:22\n    frame #9: 0x0000aaaadc113f64 yb-tserver`yb::docdb::DocPgEvalExpr(expr=<unavailable>, expr_ctx=<unavailable>) at docdb_pgapi.cc:215:3\n    frame #10: 0x0000aaaadc0bc018 yb-tserver`yb::docdb::DocPgExprExecutor::State::Exec(yb::dockv::PgTableRow const&, std::__1::vector<yb::qlexpr::ExprResult<yb::QLValuePB>, std::__1::allocator<yb::qlexpr::ExprResult<yb::QLValuePB>>>*) at doc_pg_expr.cc:241:31\n    frame #11: 0x0000aaaadc0bbfec yb-tserver`yb::docdb::DocPgExprExecutor::State::Exec(yb::dockv::PgTableRow const&, std::__1::vector<yb::qlexpr::ExprResult<yb::QLValuePB>, std::__1::allocator<yb::qlexpr::ExprResult<yb::QLValuePB>>>*) at doc_pg_expr.cc:178:10\n    frame #12: 0x0000aaaadc0bbd84 yb-tserver`yb::docdb::DocPgExprExecutor::State::Exec(this=<unavailable>, row=0x0000ffff9eaa5370, results=0x0000000000000000) at doc_pg_expr.cc:331:34\n    frame #13: 0x0000aaaadc165ca8 yb-tserver`yb::docdb::(anonymous namespace)::FilteringIterator::CheckFilter(yb::dockv::PgTableRow const&) [inlined] yb::docdb::DocPgExprExecutor::Exec(this=<unavailable>, row=<unavailable>, results=0x0000000000000000) at doc_pg_expr.cc:377:18\n    frame #14: 0x0000aaaadc165c94 yb-tserver`yb::docdb::(anonymous namespace)::FilteringIterator::CheckFilter(yb::dockv::PgTableRow const&) at pgsql_operation.cc:612:24\n    frame #15: 0x0000aaaadc165c90 yb-tserver`yb::docdb::(anonymous namespace)::FilteringIterator::CheckFilter(this=<unavailable>, row=<unavailable>) at pgsql_operation.cc:616:12\n    frame #16: 0x0000aaaadc1658e4 yb-tserver`yb::docdb::(anonymous namespace)::FilteringIterator::FetchNext(this=0x0000ffff9eaa5318, table_row=0x0000ffff9eaa5370) at pgsql_operation.cc:568:12\n    frame #17: 0x0000aaaadc164404 yb-tserver`yb::docdb::(anonymous namespace)::FetchTableRow(table_id=\"\", table_iter=0x0000ffff9eaa5318, index=0x0000000000000000, row=0x0000ffff9eaa5370) at pgsql_operation.cc:681:29\n    frame #18: 0x0000aaaadc15a930 yb-tserver`yb::docdb::PgsqlReadOperation::Execute() at pgsql_operation.cc:2561:31\n    frame #19: 0x0000aaaadc15a7cc yb-tserver`yb::docdb::PgsqlReadOperation::Execute(this=0x0000ffff9eaa5a60) at pgsql_operation.cc:2024:48\n    frame #20: 0x0000aaaadcf7a9e4 yb-tserver`yb::tablet::Tablet::HandlePgsqlReadRequest(yb::docdb::ReadOperationData const&, bool, yb::PgsqlReadRequestPB const&, yb::TransactionMetadataPB const&, yb::SubTransactionMetadataPB const&, yb::tablet::PgsqlReadRequestResult*) [inlined] yb::tablet::AbstractTablet::ProcessPgsqlReadRequest(this=0x000005b8b4ffc000, op_data=0x0000ffff9eaa5930, result=0x0000ffff9eaa5f70) at abstract_tablet.cc:89:30\n```\n\n[core-tserver.txt.zip](https://github.com/user-attachments/files/18666060/core-tserver.txt.zip)\n\n### Issue Type\n\nkind/bug\n\n### Warning: Please confirm that this issue does not contain any sensitive information\n\n- [x] I confirm this issue does not contain any sensitive information.\n\n[DB-15195]: https://yugabyte.atlassian.net/browse/DB-15195?atlOrigin=eyJpIjoiNWRkNTljNzYxNjVmNDY3MDlhMDU5Y2ZhYzA5YTRkZjUiLCJwIjoiZ2l0aHViLWNvbS1KU1cifQ",
+    "dbms": "YugabyteDB",
+    "status": "Open",
+    "created_at": "2025-02-05T03:03:00Z",
+    "link": "https://github.com/yugabyte/yugabyte-db/issues/25889"
+  },
+  {
+    "title": "SQLancer:  No equality condition found in JOIN ON expression",
+    "description": "### Describe the bug\n\nhttps://play.clickhouse.com/play?user=play#CldJVEgKICAgICdUTFBBZ2dyZWdhdGUnIEFTIG5hbWVfc3Vic3RyLAogICAgMTQgQVMgaW50ZXJ2YWxfZGF5cwpTRUxFQ1QKICAgIGNoZWNrX3N0YXJ0X3RpbWUgQVMgZCwKICAgIGNvdW50KCksCiAgICBncm91cFVuaXFBcnJheShwdWxsX3JlcXVlc3RfbnVtYmVyKSBBUyBwcnMsCiAgICBhbnkocmVwb3J0X3VybCkKRlJPTSBjaGVja3MKV0hFUkUgKChub3coKSAtIHRvSW50ZXJ2YWxEYXkoaW50ZXJ2YWxfZGF5cykpIDw9IGNoZWNrX3N0YXJ0X3RpbWUpIEFORCAocG9zaXRpb24odGVzdF9uYW1lLCBuYW1lX3N1YnN0cikgPiAwKSBBTkQgKHRlc3Rfc3RhdHVzIElOICgnRkFJTCcsICdFUlJPUicsICdGTEFLWScpKQpHUk9VUCBCWSBkCk9SREVSIEJZIGQgREVTQwo=\n\n### How to reproduce\n\nIntroduced by https://github.com/ClickHouse/ClickHouse/pull/74909\n\n### Error message and/or stacktrace\n\n_No response_",
+    "dbms": "ClickHouse",
+    "status": "Open",
+    "created_at": "2025-02-04T20:06:29Z",
+    "link": "https://github.com/ClickHouse/ClickHouse/issues/75541"
+  },
+  {
+    "title": "Create Dependency Graph",
+    "description": null,
+    "dbms": "N/A",
+    "status": "Not a bug",
+    "created_at": "2025-02-03T09:55:40Z",
+    "link": "https://github.com/yorklim/CS3213_Team_17/issues/12"
+  },
+  {
+    "title": "After inserting data, index_length is 0",
+    "description": "## Bug Report\n\nPlease answer these questions before submitting your issue. Thanks!\n\n### 1. Minimal reproduce step (Required)\n\n<!-- a step by step guide for reproducing the bug. -->\n```\ncreate database tibug_187_test;\nset max_execution_time=100000;\nCREATE TABLE t (a int, b int, c varchar(5), primary key(a), index idx(c)) PARTITION BY RANGE (a) (PARTITION p0 VALUES LESS THAN (6), PARTITION p1 VALUES LESS THAN (11), PARTITION p2 VALUES LESS THAN (16));\ninsert into t(a, b, c) values(1, 2, 'c'), (7, 3, 'd'), (12, 4, 'e');\n select table_rows, avg_row_length, data_length, index_length from information_schema.tables where table_name='t' AND TABLE_SCHEMA='tibug_187_test';\n```\n\n### 2. What did you expect to see? (Required)\nindex_length is not zero.\n\n### 3. What did you see instead (Required)\n+------------+----------------+-------------+--------------+\n| table_rows | avg_row_length | data_length | index_length |\n+------------+----------------+-------------+--------------+\n|          3 |             16 |          48 |            0 |\n+------------+----------------+-------------+--------------+\n1 row in set (0.06 sec)\n\n\n### 4. What is your TiDB version? (Required)\n\n<!-- Paste the output of SELECT tidb_version() -->\nRelease Version: v9.0.0-alpha-75-gb6141ec\nEdition: Community\nGit Commit Hash: b6141ec589ed8e73176692dc982a210ad7cf070b\nGit Branch: HEAD\nUTC Build Time: 2025-01-09 06:06:54\nGoVersion: go1.23.4\nRace Enabled: false\nCheck Table Before Drop: false\nStore: tikv\n",
+    "dbms": "TiDB",
+    "status": "Not a bug",
+    "created_at": "2025-01-09T07:34:20Z",
+    "link": "https://github.com/pingcap/tidb/issues/58823"
+  },
+  {
+    "title": "Inconsistent Behavior When Comparing CHAR Column with Binary Values",
+    "description": "## Bug Report\n\nPlease answer these questions before submitting your issue. Thanks!\n\n### 1. Minimal reproduce step (Required)\n```sql\ndrop table if exists t;\ncreate table t (a char(20) charset utf8mb4, b char(20) charset gbk, c binary(20));\ninsert into t values ('一', '一', 0xe4b880);\ninsert into t values ('一', '一', 0xd2bb);\ninsert into t values ('一', '一', 0xe4ba8c);\ninsert into t values ('一', '一', 0xb6fe);\nselect * from t where a >= 0xb6fe and a <= 0xb6fe; -- error\nselect * from t where a between 0xb6fe and 0xb6fe; -- empty set\n```\n\n<!-- a step by step guide for reproducing the bug. -->\n\n### 2. What did you expect to see? (Required)\nBoth sql statements return the same result.\n### 3. What did you see instead (Required)\n```sql\ntidb> select * from t where a >= 0xb6fe and a <= 0xb6fe;\nERROR 1105 (HY000): Cannot convert string '\\xB6\\xFE' from binary to utf8mb4\ntidb> select * from t where a between 0xb6fe and 0xb6fe;\nEmpty set, 2 warnings (0.00 sec)\n\ntidb> show warnings;\n+---------+------+---------------------------------------------------------+\n| Level   | Code | Message                                                 |\n+---------+------+---------------------------------------------------------+\n| Warning | 3854 | Cannot convert string '\\xB6\\xFE' from binary to utf8mb4 |\n| Warning | 3854 | Cannot convert string '\\xB6\\xFE' from binary to utf8mb4 |\n+---------+------+---------------------------------------------------------+\n2 rows in set (0.00 sec)\n```\n\n\n### 4. What is your TiDB version? (Required)\nmaster\n<!-- Paste the output of SELECT tidb_version() -->\n\n",
+    "dbms": "TiDB",
+    "status": "Open",
+    "created_at": "2025-01-08T15:28:52Z",
+    "link": "https://github.com/pingcap/tidb/issues/58810"
+  },
+  {
+    "title": "Wrong Result in Cast Blob to Json",
+    "description": "## Bug Report\n\nPlease answer these questions before submitting your issue. Thanks!\n\n### 1. Minimal reproduce step (Required)\n\n<!-- a step by step guide for reproducing the bug. -->\n\n```sql\nDROP TABLE IF EXISTS t0;\nCREATE TABLE t0(c0 BLOB);\nINSERT INTO t0 VALUES ('1xx');\n\nSELECT t0.c0 FROM t0 WHERE CAST(t0.c0 AS JSON);\n```\n\n### 2. What did you expect to see? (Required)\n\nsee the following case:\n\n### 3. What did you see instead (Required)\n\n```sql\n// MySQL 8.4.1\nMySQL [test]> SELECT t0.c0 FROM t0 WHERE CAST(t0.c0 AS JSON);\n+------+\n| c0   |\n+------+\n| 1xx  |\n+------+\n1 row in set, 1 warning (0.00 sec)\n\n// TiDB\nmysql> SELECT t0.c0 FROM t0 WHERE CAST(t0.c0 AS JSON);\n+------------+\n| c0         |\n+------------+\n| 0x317878   |\n+------------+\n1 row in set (0.04 sec)\n```\n\n### 4. What is your TiDB version? (Required)\n\n<!-- Paste the output of SELECT tidb_version() -->\n\nTiDB v8.5.0",
+    "dbms": "TiDB",
+    "status": "Closed",
+    "created_at": "2025-01-08T02:22:20Z",
+    "link": "https://github.com/pingcap/tidb/issues/58777"
+  },
+  {
+    "title": "Compatibility issue between ClickHouse and NoREC's where clause",
+    "description": "The following will excute queries at a speed of 1 query/s.\r\n```\r\njava -jar sqlancer-*.jar --num-threads 4 clickhouse --oracle NoREC\r\n```\r\nThe reason seems to be that most generated queries failed. One simple example is:\r\n```\r\ncreate table test_database.t0 (c0 Int32) engine = Log()\r\n```\r\nThe queries submiited by NoREC can be:\r\n```\r\n(SELECT COUNT(*) FROM t0 WHERE t0.c0);\r\nSELECT SUM(check <> 0) FROM ((SELECT t0.c0 AS `check` FROM t0)) as res;\r\n```\r\nAnd ClickHouse does not support Int32 in where clause (It should be UInt8 or boolean). Will report:\r\n```\r\nllegal type Int32 of column __table1.c0 for filter. Must be UInt8 or Nullable(UInt8)\r\n```\r\nOther expressions used in the where clause can be much more complex. @mrigger mentions that this is because:\r\n[generateBooleanExpression](https://github.com/sqlancer/sqlancer/blob/0487a59695d82539382c22c9c20499b78c2e1413/src/sqlancer/clickhouse/gen/ClickHouseExpressionGenerator.java#L369) does not only select boolean operators (or UInt8 ones). And shows an [example](https://github.com/sqlancer/sqlancer/blob/0487a59695d82539382c22c9c20499b78c2e1413/src/sqlancer/postgres/gen/PostgresExpressionGenerator.java#L171) to implement the generator.\r\n\r\n\r\n",
+    "dbms": "ClickHouse",
+    "status": "Open",
+    "created_at": "2025-01-07T09:23:48Z",
+    "link": "https://github.com/sqlancer/sqlancer/issues/1057"
+  },
+  {
+    "title": "Release 13.0 Error when using unsupported binary operators in queries",
+    "description": "SQLancer generates queries with unsupported operators like #>>, resulting in syntax errors:\r\n\r\n`ERROR: syntax error at or near \"#>>\"`\r\n\r\nSteps to Reproduce:\r\n\r\n`SELECT '{\"key\": \"value\"}'::jsonb #>> '{key}';`\r\n\r\n**Expected Behavior:** Citus may:\r\n\r\n- Either support such operators in distributed queries.\r\n- Or provide a meaningful error message.\r\n\r\n**Actual Behavior**: The query fails with a generic syntax error.\r\n\r\n**Impact**: This limits compatibility with applications using advanced JSON operators.\r\n\r\n**Suggested Solution:**\r\n\r\n- Implement support for operators like #>> in distributed queries.\r\n- Alternatively, refine SQLancer's query generation to exclude unsupported syntax.",
+    "dbms": "Citus",
+    "status": "Open",
+    "created_at": "2025-01-06T10:28:36Z",
+    "link": "https://github.com/citusdata/citus/issues/7835"
+  },
+  {
+    "title": "Release 13.0 Improve handling of unsupported collation-encoding combinations",
+    "description": "Queries using incompatible collations and encodings, such as da_DK.utf8 with SQL_ASCII, result in errors like:\r\n\r\n`ERROR: collation \"da_DK.utf8\" for encoding \"SQL_ASCII\" does not exist`\r\n`ERROR: collation \"pg_c_utf8\" for encoding \"SQL_ASCII\" does not exist`\r\n\r\n**Steps to Reproduce:**\r\nExecute a query specifying an unsupported collation:\r\n`CREATE TABLE test_table (id INT COLLATE \"da_DK.utf8\");`\r\n\r\n\r\n**Expected Behavior:**\r\nDistributed query validation may catch unsupported configurations and provide actionable error messages.\r\n\r\n**Suggested Solution:**\r\n- Validate collation-encoding compatibility during table creation.\r\n- Enhance error messages to provide actionable guidance.\r\n\r\n**Severity:\r\nNot a blocker:**\r\nSQL_ASCII is rarely used in modern databases. It is considered outdated and is generally not recommended for new applications.",
+    "dbms": "PostgreSQL",
+    "status": "Not a bug",
+    "created_at": "2025-01-06T10:26:33Z",
+    "link": "https://github.com/citusdata/citus/issues/7834"
+  },
+  {
+    "title": "Release 13.0 Improve handling of invalid UTF-8 byte sequences",
+    "description": "SQLancer generates invalid UTF-8 byte sequences, resulting in errors such as:\r\n\r\n`ERROR: invalid byte sequence for encoding \"UTF8\": 0xee 0x22 0x20`\r\n\r\n**Steps to Reproduce:**\r\n\r\nInsert a string with an invalid UTF-8 sequence:\r\n\r\n`INSERT INTO test_table (name) VALUES (E'\\xee\\x22\\x20');`\r\n\r\n\r\n**Expected Behavior:**\r\n\r\nQueries may validate input data and reject invalid byte sequences gracefully.\r\n\r\n**Suggested Solution:**\r\nAdd input validation logic to reject malformed UTF-8 sequences.\r\n\r\n**Severity**:\r\n**Not a blocker:** This edge case affects robustness but doesn't disrupt overall functionality. While improving data validation or rejecting malformed data would enhance usability, it isn’t critical for the release.\r\n\r\n",
+    "dbms": "PostgreSQL",
+    "status": "Closed",
+    "created_at": "2025-01-06T10:23:42Z",
+    "link": "https://github.com/citusdata/citus/issues/7833"
+  },
+  {
+    "title": "Release 13.0 Error when specifying storage parameters for partitioned tables",
+    "description": "Currently, Citus does not gracefully handle SQL queries that attempt to specify storage parameters for partitioned tables. When such a query is executed, PostgreSQL rejects it with the error:\r\n\r\n```\r\nERROR: cannot specify storage parameters for a partitioned table\r\nHINT: Specify storage parameters for its leaf partitions instead.\r\n```\r\n\r\n**Steps to Reproduce:**\r\n\r\nCreate a partitioned table in Citus:\r\n\r\n`CREATE TABLE test_table (id INT) PARTITION BY RANGE (id);`\r\n\r\nAttempt to apply storage parameters:\r\n\r\n`ALTER TABLE test_table SET (parallel_workers = 4);`\r\n\r\n**Expected Behavior:**\r\n\r\n- Storage parameters may be validated during query execution.\r\n- Clearer error messaging should guide users on setting parameters for leaf partitions.\r\n\r\n \r\n **Suggested Solution**: \r\n\r\n-  Implement validation to catch these errors earlier.\r\n- Enhance error messaging to explain partitioned table constraints.\r\n\r\n**Severity:**\r\n\r\nThis issue primarily affects usability and could be mitigated with better error messaging or documentation. Users can work around it by applying storage parameters to leaf partitions.",
+    "dbms": "Citus",
+    "status": "Not a bug",
+    "created_at": "2025-01-06T10:21:23Z",
+    "link": "https://github.com/citusdata/citus/issues/7832"
+  },
+  {
+    "title": "clickhouse with --test-joins False option",
+    "description": "I found the following at https://github.com/sqlancer/sqlancer/blob/main/src/sqlancer/clickhouse/gen/ClickHouseExpressionGenerator.java#L382-L385.\r\n```java\r\nList<ClickHouseExpression.ClickHouseJoin> joinStatements = new ArrayList<>();\r\nif (globalState.getClickHouseOptions().testJoins && Randomly.getBoolean()) {\r\n    return joinStatements;\r\n}\r\n```\r\nSeems that it tries to return an empty join clause when testJoins is False. And when testJoins is True, it returns empty join clause occasionally. So this actually should be\r\n```java\r\nList<ClickHouseExpression.ClickHouseJoin> joinStatements = new ArrayList<>();\r\nif (!globalState.getClickHouseOptions().testJoins || Randomly.getBoolean()) {\r\n    return joinStatements;\r\n}\r\n```\r\nAm I correct?",
+    "dbms": "ClickHouse",
+    "status": "Open",
+    "created_at": "2025-01-06T09:06:36Z",
+    "link": "https://github.com/sqlancer/sqlancer/issues/1056"
+  },
+  {
+    "title": "Panic in a query with NATURAL JOIN (SQLancer)",
+    "description": "### Describe the bug\n\nSee reproducer in datafusion-cli (compiled from latest main, commit hash 3f4297f50)\r\n```\r\nDataFusion CLI v44.0.0\r\n> create table t1(v1 int, v2 int);\r\n0 row(s) fetched.\r\nElapsed 0.021 seconds.\r\n\r\n> select v1 from t1 as tt1 natural join t1 as tt2 group by v1 order by v2;\r\nthread 'main' panicked at /Users/yongting/Code/datafusion/datafusion/expr/src/logical_plan/plan.rs:909:17:\r\nassertion `left == right` failed\r\n  left: 3\r\n right: 2\r\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\r\n```\r\n\n\n### To Reproduce\n\n_No response_\n\n### Expected behavior\n\ncolumn reference `v2` in `order by` clause is invalid, the query should return an error instead like\r\n```\r\n> select v1 from t1 group by v1 order by v2;\r\nSchema error: No field named t1.v2. Valid fields are t1.v1.\r\n```\n\n### Additional context\n\nFound by SQLancer https://github.com/apache/datafusion/issues/11030",
+    "dbms": "DataFusion",
+    "status": "Open",
+    "created_at": "2025-01-06T07:31:15Z",
+    "link": "https://github.com/apache/datafusion/issues/14015"
+  },
+  {
+    "title": "Is this supposed to generate a random number?",
+    "description": "https://github.com/sqlancer/sqlancer/blob/main/src/sqlancer/clickhouse/ClickHouseProvider.java#L90\r\n\r\nI tried this line with several times but it always output 5, instead of generating a random number ranging from 1 to 5. I wonder if this is the expected behavior? Thanks!",
+    "dbms": "ClickHouse",
+    "status": "Fixed",
+    "created_at": "2025-01-06T01:30:13Z",
+    "link": "https://github.com/sqlancer/sqlancer/issues/1055"
+  }
+]

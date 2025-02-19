@@ -1,13 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { Tooltip } from "@mui/material";
 import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import {
-  MaterialReactTable,
-  useMaterialReactTable,
-} from 'material-react-table';
+import { IconButton, Tooltip } from '@mui/material';
+import { OpenInNew as OpenInNewIcon } from '@mui/icons-material';
+import { MaterialReactTable, useMaterialReactTable } from 'material-react-table';
 
 function IssuesPage() {
   const [issues, setIssues] = useState([]);
@@ -48,12 +46,6 @@ function IssuesPage() {
           );
         },
       },
-      {
-        accessorKey: 'link',
-        header: 'Link',
-        size: 150,
-        Cell: ({ cell }) => <a href={cell.getValue()} target="_blank">{cell.getValue()}</a>,
-      },
     ],
     []
   );
@@ -78,8 +70,16 @@ function IssuesPage() {
     ),
     muiExpandButtonProps: ({ row, table }) => ({
       onClick: () => table.setExpanded({ [row.id]: !row.getIsExpanded() }), // set only this row to be expanded
-      style: { outline: 'none' },
     }),
+    enableRowActions: true,
+    positionActionsColumn: 'last',
+    renderRowActions: ({ row }) => (
+      <Tooltip title="View issue">
+        <IconButton onClick={() => window.open(row.original.link, "_blank")}>
+          <OpenInNewIcon />
+        </IconButton>
+      </Tooltip>
+    ),
   });
 
   return (

@@ -2,8 +2,8 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import mysql from 'mysql2/promise';
-import bodyParser from 'body-parser';
 import { Octokit } from '@octokit/rest';
+import fs from 'fs/promises'
 
 import OpenAI from 'openai';
 import { zodResponseFormat } from 'openai/helpers/zod';
@@ -16,26 +16,26 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware to parse JSON
-app.use(bodyParser.json());
-// app.use(express.json());
+app.use(express.json());
+
 // Enable CORS for all requests
 app.use(cors());
 
 // Database connection
-const db = mysql.createConnection({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-});
-
-db.connect((err) => {
-  if (err) {
-    console.error('Error connecting to MySQL:', err.message);
-    return;
-  }
-  console.log('Connected to MySQL database.');
-});
+// const db = mysql.createConnection({
+//   host: process.env.DB_HOST,
+//   user: process.env.DB_USER,
+//   password: process.env.DB_PASSWORD,
+//   database: process.env.DB_NAME,
+// });
+//
+// db.connect((err) => {
+//   if (err) {
+//     console.error('Error connecting to MySQL:', err.message);
+//     return;
+//   }
+//   console.log('Connected to MySQL database.');
+// });
 
 const BugReport = z.object({
   dbms: z.string(),
@@ -78,40 +78,49 @@ async function callOpenAIWithStructuredOutput(content, responseFormat) {
   return completion.choices[0].message.parsed;
 }
 
+async function fetchGitHubIssues() {
+  const response = await octokit.rest.search.issuesAndPullRequests({
+    q: "sqlancer is:issue",
+    sort: "created",
+    order: "desc",
+    per_page: 20,
+  });
+
+  return await Promise.all(
+    response.data.items.map(async issue => {
+      const [owner, repo] = issue.repository_url.split("/").slice(-2);
+      const { data: comments } = await octokit.rest.issues.listComments({
+        owner,
+        repo,
+        issue_number: issue.number,
+      });
+
+      const { prompt, responseFormat } = getPromptAndResponseFormat(issue, comments);
+      const bugReport = await callOpenAIWithStructuredOutput(prompt, responseFormat);
+
+      return {
+        title: issue.title,
+        description: issue.body,
+        dbms: bugReport.dbms,
+        status: bugReport.status,
+        created_at: issue.created_at,
+        link: issue.html_url,
+      };
+    })
+  );
+}
+
 // Routes
 app.get("/github_issues", async (req, res) => {
   try {
-    const response = await octokit.rest.search.issuesAndPullRequests({
-      q: "sqlancer is:issue",
-      sort: "created",
-      order: "desc",
-      per_page: 20,
-    });
-
-    const issues = await Promise.all(
-      response.data.items.map(async issue => {
-        const [owner, repo] = issue.repository_url.split("/").slice(-2);
-        const { data: comments } = await octokit.rest.issues.listComments({
-          owner,
-          repo,
-          issue_number: issue.number,
-        });
-
-        const { prompt, responseFormat } = getPromptAndResponseFormat(issue, comments);
-        const bugReport = await callOpenAIWithStructuredOutput(prompt, responseFormat);
-
-        return {
-          title: issue.title,
-          description: issue.body,
-          dbms: bugReport.dbms,
-          status: bugReport.status,
-          created_at: issue.created_at,
-          link: issue.html_url,
-        };
-      })
-    );
-
-    res.json({ issues });
+    // temporary file storage until cloud database is set up
+    fs.readFile('issues.json', 'utf-8')
+      .then(data => res.json({ issues: JSON.parse(data) }))
+      .catch(async () => {
+        const issues = await fetchGitHubIssues();
+        await fs.writeFile('issues.json', JSON.stringify(issues, null, 2), 'utf-8');
+        res.json({ issues });
+      });
   } catch (error) {
     console.error("Error fetching GitHub API:", error.response?.data || error.message);
     res.status(500).json({ error: "Failed to fetch issues from GitHub API" });
