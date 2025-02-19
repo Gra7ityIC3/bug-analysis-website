@@ -1,19 +1,19 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require("cors");
-const mysql = require('mysql2');
-const bodyParser = require('body-parser');
-const axios = require("axios");
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import mysql from 'mysql2/promise';
+import bodyParser from 'body-parser';
+import { Octokit } from '@octokit/rest';
 
-const OpenAI = require("openai");
-const { zodResponseFormat } = require("openai/helpers/zod");
-const { z } = require("zod");
+import OpenAI from 'openai';
+import { zodResponseFormat } from 'openai/helpers/zod';
+import { z } from 'zod';
 
 const openai = new OpenAI();
+const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const GITHUB_ISSUES_SEARCH_URL = "https://api.github.com/search/issues?q=sqlancer+is:issue&sort=created&order=desc";
 
 // Middleware to parse JSON
 app.use(bodyParser.json());
@@ -81,11 +81,22 @@ async function callOpenAIWithStructuredOutput(content, responseFormat) {
 // Routes
 app.get("/github_issues", async (req, res) => {
   try {
-    const response = await axios.get(GITHUB_ISSUES_SEARCH_URL);
+    const response = await octokit.rest.search.issuesAndPullRequests({
+      q: "sqlancer is:issue",
+      sort: "created",
+      order: "desc",
+      per_page: 20,
+    });
 
     const issues = await Promise.all(
-      response.data.items.map(async (issue) => {
-        const { data: comments } = await axios.get(issue.comments_url);
+      response.data.items.map(async issue => {
+        const [owner, repo] = issue.repository_url.split("/").slice(-2);
+        const { data: comments } = await octokit.rest.issues.listComments({
+          owner,
+          repo,
+          issue_number: issue.number,
+        });
+
         const { prompt, responseFormat } = getPromptAndResponseFormat(issue, comments);
         const bugReport = await callOpenAIWithStructuredOutput(prompt, responseFormat);
 
