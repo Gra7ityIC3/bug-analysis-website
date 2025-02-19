@@ -2,7 +2,7 @@
   {
     "title": "[SQLancer][YSQL] ORDER BY DESC may read deleted values from the table with UNIQUE DEFAULT columns, when fast backward scans is used",
     "description": "Jira Link: [DB-15387](https://yugabyte.atlassian.net/browse/DB-15387)\r\n### Description\n\nFirst select return 0 rows, while second one will return `2` (value from INSERT)\n```\nCREATE TABLE t1(c0 int UNIQUE DEFAULT 1);\nINSERT INTO t1(c0) VALUES (2);\nDELETE FROM t1;\nSELECT * FROM t1;\nSELECT * FROM t1 GROUP BY t1.c0 ORDER BY t1.c0 DESC;\n```\n\n### Issue Type\n\nkind/bug\n\n### Warning: Please confirm that this issue does not contain any sensitive information\n\n- [x] I confirm this issue does not contain any sensitive information.\n\n[DB-15387]: https://yugabyte.atlassian.net/browse/DB-15387?atlOrigin=eyJpIjoiNWRkNTljNzYxNjVmNDY3MDlhMDU5Y2ZhYzA5YTRkZjUiLCJwIjoiZ2l0aHViLWNvbS1KU1cifQ",
-    "dbms": "YSQL",
+    "dbms": "YugabyteDB",
     "status": "Open",
     "created_at": "2025-02-15T01:07:09Z",
     "link": "https://github.com/yugabyte/yugabyte-db/issues/26060"
@@ -10,7 +10,7 @@
   {
     "title": "Calculate the LCOM (Lack of Cohesion of Methods), Efferent Coupling (Ce), Afferent Coupling (Ca) metrics for SQLancer",
     "description": "Working on calculating metrics. Looking at using codemetrics4j that includes Ca, Ce and LCOM.",
-    "dbms": "SQLancer",
+    "dbms": "N/A",
     "status": "Not a bug",
     "created_at": "2025-02-13T06:58:45Z",
     "link": "https://github.com/yorklim/CS3213_Team_17/issues/40"
@@ -18,7 +18,7 @@
   {
     "title": "Enable mocking of SQLancer for testing",
     "description": "refer to user story #3",
-    "dbms": "Generic",
+    "dbms": "N/A",
     "status": "Not a bug",
     "created_at": "2025-02-10T04:33:01Z",
     "link": "https://github.com/CS3213-T6-1/sqlancer/issues/27"

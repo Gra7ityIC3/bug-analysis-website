@@ -9,11 +9,13 @@ import { MaterialReactTable, useMaterialReactTable } from 'material-react-table'
 
 function IssuesPage() {
   const [issues, setIssues] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     axios.get('http://localhost:5000/github_issues')
       .then(response => setIssues(response.data.issues))
-      .catch(error => console.error('Error fetching issues:', error));
+      .catch(error => console.error('Error fetching issues:', error))
+      .finally(() => setIsLoading(false));
   }, []);
 
   const columns = useMemo(
@@ -80,6 +82,9 @@ function IssuesPage() {
         </IconButton>
       </Tooltip>
     ),
+    state: {
+      isLoading
+    }
   });
 
   return (
