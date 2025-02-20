@@ -1,19 +1,21 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import './App.css'
-import Header from './general/Header'
-import IssuesPage from './pages/IssuesPage'
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import './App.css';
+import Header from './general/Header';
+import IssuesPage from './pages/IssuesPage';
 
 function App() {
   return (
-    <>
-      <BrowserRouter>
-        <Header/>
+    <BrowserRouter>
+      <Header />
+      <LocalizationProvider dateAdapter={AdapterDayjs}>
         <Routes>
           <Route path="/" element={<IssuesPage />} />
         </Routes>
-      </BrowserRouter>
-    </>
-  )
+      </LocalizationProvider>
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;

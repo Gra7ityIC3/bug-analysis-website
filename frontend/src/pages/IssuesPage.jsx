@@ -21,6 +21,14 @@ function IssuesPage() {
   const columns = useMemo(
     () => [
       {
+        accessorFn: (row, index) => index + 1,
+        id: 'id',
+        header: 'ID',
+        enableColumnActions: false,
+        enableColumnFilter: false,
+        size: 50,
+      },
+      {
         accessorKey: 'title',
         header: 'Title',
         size: 400,
@@ -33,14 +41,17 @@ function IssuesPage() {
       {
         accessorKey: 'status',
         header: 'Status',
+        filterVariant: 'multi-select',
         size: 150,
       },
       {
-        accessorKey: 'created_at',
+        accessorFn: (row) => new Date(row.created_at), // convert to Date for sorting and filtering
+        id: 'created_at',
         header: 'Date Posted',
+        filterVariant: 'date-range',
         size: 150,
         Cell: ({ cell }) => {
-          const date = new Date(cell.getValue());
+          const date = cell.getValue();
           return (
             <Tooltip title={format(date, 'MMM d, yyyy, h:mm a z')}>
               <span>{format(date, 'MMM d, yyyy')}</span>
@@ -55,13 +66,7 @@ function IssuesPage() {
   const table = useMaterialReactTable({
     columns,
     data: issues,
-    enableRowNumbers: true,
-    rowNumberDisplayMode: 'original',
-    displayColumnDefOptions: {
-      'mrt-row-numbers': {
-        Header: 'ID', // header: 'ID' doesn't work
-      },
-    },
+    enableFacetedValues: true,
     enableExpandAll: false,
     renderDetailPanel: ({ row }) => (
       <div style={{ padding: '1rem', background: '#f9f9f9' }}>
