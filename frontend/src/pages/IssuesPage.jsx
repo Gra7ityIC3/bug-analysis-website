@@ -7,6 +7,12 @@ import { IconButton, Tooltip } from '@mui/material';
 import { OpenInNew as OpenInNewIcon } from '@mui/icons-material';
 import { MaterialReactTable, useMaterialReactTable } from 'material-react-table';
 
+const getEndOfDay = (max) => {
+  const date = new Date(max);
+  date.setHours(23, 59, 59, 999);
+  return date;
+}
+
 function IssuesPage() {
   const [issues, setIssues] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,11 +37,13 @@ function IssuesPage() {
       {
         accessorKey: 'title',
         header: 'Title',
+        filterFn: 'contains',
         size: 400,
       },
       {
         accessorKey: 'dbms',
         header: 'DBMS',
+        filterVariant: 'multi-select',
         size: 150,
       },
       {
@@ -45,11 +53,16 @@ function IssuesPage() {
         size: 150,
       },
       {
-        accessorFn: (row) => new Date(row.created_at), // convert to Date for sorting and filtering
+        accessorFn: (row) => new Date(row.created_at), // convert to date for sorting and filtering
         id: 'created_at',
         header: 'Date Posted',
         filterVariant: 'date-range',
         size: 150,
+        filterFn: (row, columnId, filterValue) => {
+          const date = row.getValue(columnId);
+          const [min, max] = filterValue;
+          return (!min || date >= new Date(min)) && (!max || date <= getEndOfDay(max));
+        },
         Cell: ({ cell }) => {
           const date = cell.getValue();
           return (
@@ -66,6 +79,7 @@ function IssuesPage() {
   const table = useMaterialReactTable({
     columns,
     data: issues,
+    globalFilterFn: 'contains',
     enableFacetedValues: true,
     enableExpandAll: false,
     renderDetailPanel: ({ row }) => (
