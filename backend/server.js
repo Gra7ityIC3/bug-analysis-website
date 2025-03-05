@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import mysql from 'mysql2/promise';
+import pkg from 'pg';
 import { Octokit } from '@octokit/rest';
 import fs from 'fs/promises'
 
@@ -21,21 +21,19 @@ app.use(express.json());
 // Enable CORS for all requests
 app.use(cors());
 
-// Database connection
-// const db = mysql.createConnection({
-//   host: process.env.DB_HOST,
-//   user: process.env.DB_USER,
-//   password: process.env.DB_PASSWORD,
-//   database: process.env.DB_NAME,
+const { Pool } = pkg;
+
+// PostgreSQL Database connection
+// const pool = new Pool({
+//   connectionString: process.env.DATABASE_URL,
+//   ssl: {
+//     rejectUnauthorized: false,  // Required for Heroku
+//   },
 // });
-//
-// db.connect((err) => {
-//   if (err) {
-//     console.error('Error connecting to MySQL:', err.message);
-//     return;
-//   }
-//   console.log('Connected to MySQL database.');
-// });
+
+// pool.connect()
+//   .then(() => console.log('Connected to PostgreSQL database.'))
+//   .catch(err => console.error('Error connecting to PostgreSQL:', err.message));
 
 const BugReport = z.object({
   dbms: z.string(),
@@ -130,8 +128,8 @@ app.get("/github_issues", async (req, res) => {
 // Get all issues
 app.get('/issues', async (req, res) => {
   try {
-    const [issues] = await db.query('SELECT * FROM issues');
-    res.json(issues);
+    const result = await pool.query('SELECT * FROM issues');
+    res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -141,12 +139,12 @@ app.get('/issues', async (req, res) => {
 app.post('/issue', async (req, res) => {
   try {
     const { title, description, date } = req.body;
-    const [result] = await db.query(
-      'INSERT INTO issues (title, description, date) VALUES (?, ?, ?)',
+    const result = await pool.query(
+      'INSERT INTO issues (title, description, date) VALUES ($1, $2, $3) RETURNING id',
       [title, description, date]
     );
 
-    res.status(201).json({ id: result.insertId, title, description, date });
+    res.status(201).json({ id: result.rows[0].id, title, description, date });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -156,9 +154,9 @@ app.post('/issue', async (req, res) => {
 app.delete('/issue/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const [result] = await db.query('DELETE FROM issues WHERE id = ?', [id]);
+    const result = await pool.query('DELETE FROM issues WHERE id = $1', [id]);
 
-    if (result.affectedRows === 0) {
+    if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Issue not found' });
     }
 
