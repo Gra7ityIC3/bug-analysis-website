@@ -32,11 +32,13 @@ function IssuesPage() {
         header: 'ID',
         enableColumnActions: false,
         enableColumnFilter: false,
+        enableGrouping: false,
         size: 50,
       },
       {
         accessorKey: 'title',
         header: 'Title',
+        enableGrouping: false,
         filterFn: 'contains',
         size: 400,
       },
@@ -45,17 +47,28 @@ function IssuesPage() {
         header: 'DBMS',
         filterVariant: 'multi-select',
         size: 150,
+        sortingFn: (rowA, rowB, columnId) => {
+          // If grouped, sort by group size in ascending order
+          // As DBMS is a string, descending order wouldn't follow the default sort direction (↑)
+          if (rowA.subRows.length && rowB.subRows.length) {
+            return rowA.subRows.length - rowB.subRows.length;
+          }
+          // Otherwise, sort alphabetically in ascending order
+          return rowA.getValue(columnId).localeCompare(rowB.getValue(columnId));
+        },
       },
       {
         accessorKey: 'status',
         header: 'Status',
+        enableGrouping: false,
         filterVariant: 'multi-select',
         size: 150,
       },
       {
-        accessorFn: (row) => new Date(row.created_at), // convert to date for sorting and filtering
+        accessorFn: (row) => new Date(row.created_at),
         id: 'created_at',
         header: 'Date Posted',
+        enableGrouping: false,
         filterVariant: 'date-range',
         size: 150,
         filterFn: (row, columnId, filterValue) => {
@@ -79,9 +92,11 @@ function IssuesPage() {
   const table = useMaterialReactTable({
     columns,
     data: issues,
-    globalFilterFn: 'contains',
     enableFacetedValues: true,
-    enableExpandAll: false,
+    enableGrouping: true,
+    enableRowActions: true,
+    globalFilterFn: 'contains',
+    positionActionsColumn: 'last',
     renderDetailPanel: ({ row }) => (
       <div style={{ padding: '1rem', background: '#f9f9f9' }}>
         <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -89,11 +104,6 @@ function IssuesPage() {
         </ReactMarkdown>
       </div>
     ),
-    muiExpandButtonProps: ({ row, table }) => ({
-      onClick: () => table.setExpanded({ [row.id]: !row.getIsExpanded() }), // set only this row to be expanded
-    }),
-    enableRowActions: true,
-    positionActionsColumn: 'last',
     renderRowActions: ({ row }) => (
       <Tooltip title="View issue">
         <IconButton onClick={() => window.open(row.original.link, "_blank")}>
