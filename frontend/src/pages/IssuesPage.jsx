@@ -97,6 +97,14 @@ function IssuesPage() {
     enableRowActions: true,
     globalFilterFn: 'contains',
     positionActionsColumn: 'last',
+    initialState: {
+      columnFilters: [
+        {
+          id: 'status',
+          value: ['Open', 'Closed', 'Fixed'],
+        },
+      ],
+    },
     renderDetailPanel: ({ row }) => (
       <div style={{ padding: '1rem', background: '#f9f9f9' }}>
         <ReactMarkdown remarkPlugins={[remarkGfm]}>
