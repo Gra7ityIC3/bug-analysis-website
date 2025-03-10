@@ -27,13 +27,10 @@ function IssuesPage() {
   const columns = useMemo(
     () => [
       {
-        accessorFn: (row, index) => index + 1,
-        id: 'id',
-        header: 'ID',
-        enableColumnActions: false,
-        enableColumnFilter: false,
+        accessorKey: 'creator',
+        header: 'Creator',
         enableGrouping: false,
-        size: 50,
+        size: 100,
       },
       {
         accessorKey: 'title',
@@ -95,6 +92,7 @@ function IssuesPage() {
     enableFacetedValues: true,
     enableGrouping: true,
     enableRowActions: true,
+    enableRowNumbers: true,
     globalFilterFn: 'contains',
     positionActionsColumn: 'last',
     initialState: {
@@ -114,7 +112,7 @@ function IssuesPage() {
     ),
     renderRowActions: ({ row }) => (
       <Tooltip title="View issue">
-        <IconButton onClick={() => window.open(row.original.link, "_blank")}>
+        <IconButton onClick={() => window.open(row.original.html_url, "_blank")}>
           <OpenInNewIcon />
         </IconButton>
       </Tooltip>

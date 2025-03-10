@@ -1,9 +1,8 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import pkg from 'pg';
+import * as db from './db.js';
 import { Octokit } from '@octokit/rest';
-import fs from 'fs/promises'
 
 import OpenAI from 'openai';
 import { zodResponseFormat } from 'openai/helpers/zod';
@@ -21,23 +20,11 @@ app.use(express.json());
 // Enable CORS for all requests
 app.use(cors());
 
-const { Pool } = pkg;
-
-// PostgreSQL Database connection
-// const pool = new Pool({
-//   connectionString: process.env.DATABASE_URL,
-//   ssl: {
-//     rejectUnauthorized: false,  // Required for Heroku
-//   },
-// });
-
-// pool.connect()
-//   .then(() => console.log('Connected to PostgreSQL database.'))
-//   .catch(err => console.error('Error connecting to PostgreSQL:', err.message));
+db.initializeDatabase();
 
 const BugReport = z.object({
   dbms: z.string(),
-  status: z.enum(["Open", "Closed", "Fixed", "Not a bug"]),
+  status: z.enum(['Open', 'Closed', 'Fixed', 'Not a bug']),
 });
 
 function getPromptAndResponseFormat(issue, comments) {
@@ -51,24 +38,24 @@ Classify the issue as one of the following:
 
 Title: ${issue.title}
 Description: ${issue.body}
-Labels: ${issue.labels.map(label => label.name).join(", ")}
+Labels: ${issue.labels.map(label => label.name).join(', ')}
 
 Comments:
-${comments.map(comment => comment.body).join("\n\n")}`
+${comments.map(comment => comment.body).join('\n\n')}`
 
-  return { prompt, responseFormat: zodResponseFormat(BugReport, "bug_report") };
+  return { prompt, responseFormat: zodResponseFormat(BugReport, 'bug_report') };
 }
 
 async function callOpenAIWithStructuredOutput(content, responseFormat) {
   const completion = await openai.beta.chat.completions.parse({
-    model: "gpt-4o",
+    model: 'gpt-4o',
     temperature: 0.2, // Reduce randomness
     messages: [
       {
-        role: "system",
-        content: "You are an AI assistant specialized in analyzing GitHub issues for bugs found by SQLancer."
+        role: 'system',
+        content: 'You are an AI assistant specialized in analyzing GitHub issues for bugs found by SQLancer.'
       },
-      { role: "user", content: content },
+      { role: 'user', content: content },
     ],
     response_format: responseFormat
   });
@@ -78,15 +65,15 @@ async function callOpenAIWithStructuredOutput(content, responseFormat) {
 
 async function fetchGitHubIssues() {
   const response = await octokit.rest.search.issuesAndPullRequests({
-    q: "sqlancer is:issue",
-    sort: "created",
-    order: "desc",
-    per_page: 20,
+    q: 'sqlancer is:issue',
+    sort: 'created',
+    order: 'desc',
+    per_page: 30,
   });
 
   return await Promise.all(
     response.data.items.map(async issue => {
-      const [owner, repo] = issue.repository_url.split("/").slice(-2);
+      const [owner, repo] = issue.repository_url.split('/').slice(-2);
       const { data: comments } = await octokit.rest.issues.listComments({
         owner,
         repo,
@@ -97,38 +84,41 @@ async function fetchGitHubIssues() {
       const bugReport = await callOpenAIWithStructuredOutput(prompt, responseFormat);
 
       return {
+        creator: issue.user.login,
         title: issue.title,
         description: issue.body,
         dbms: bugReport.dbms,
         status: bugReport.status,
+        html_url: issue.html_url,
         created_at: issue.created_at,
-        link: issue.html_url,
+        updated_at: issue.updated_at,
       };
     })
   );
 }
 
 // Routes
-app.get("/github_issues", async (req, res) => {
+app.get('/github_issues', async (req, res) => {
   try {
-    // temporary file storage until cloud database is set up
-    fs.readFile('issues.json', 'utf-8')
-      .then(data => res.json({ issues: JSON.parse(data) }))
-      .catch(async () => {
-        const issues = await fetchGitHubIssues();
-        await fs.writeFile('issues.json', JSON.stringify(issues, null, 2), 'utf-8');
-        res.json({ issues });
-      });
+    const result = await db.pool.query('SELECT * FROM cs3213_issues ORDER BY created_at DESC');
+
+    if (result.rowCount) {
+      return res.json({ issues: result.rows });
+    }
+
+    const newIssues = await fetchGitHubIssues();
+    const savedIssues = await db.saveIssuesUsingCopy(newIssues);
+    res.json({ issues: savedIssues });
   } catch (error) {
-    console.error("Error fetching GitHub API:", error.response?.data || error.message);
-    res.status(500).json({ error: "Failed to fetch issues from GitHub API" });
+    console.error('Error fetching issues from database:', error);
+    res.status(500).json({ error: 'Failed to fetch issues from the database.' });
   }
 });
 
 // Get all issues
 app.get('/issues', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM issues');
+    const result = await db.pool.query('SELECT * FROM issues');
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -139,7 +129,7 @@ app.get('/issues', async (req, res) => {
 app.post('/issue', async (req, res) => {
   try {
     const { title, description, date } = req.body;
-    const result = await pool.query(
+    const result = await db.pool.query(
       'INSERT INTO issues (title, description, date) VALUES ($1, $2, $3) RETURNING id',
       [title, description, date]
     );
@@ -154,7 +144,7 @@ app.post('/issue', async (req, res) => {
 app.delete('/issue/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await pool.query('DELETE FROM issues WHERE id = $1', [id]);
+    const result = await db.pool.query('DELETE FROM issues WHERE id = $1', [id]);
 
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Issue not found' });
