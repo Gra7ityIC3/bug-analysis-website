@@ -115,28 +115,17 @@ app.get('/github_issues', async (req, res) => {
   }
 });
 
-// Get all issues
-app.get('/issues', async (req, res) => {
+// Return databases with open issues and the number of open issues
+app.get('/dbms_summary_data', async (req, res) => {
   try {
-    const result = await db.pool.query('SELECT * FROM issues');
-    res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+    const result = await db.pool.query("SELECT dbms, COUNT(CASE WHEN status != 'Not a bug' THEN 1 END) AS total_count, COUNT(CASE WHEN status = 'Open' THEN 1 END) AS open_count, COUNT(CASE WHEN status = 'Fixed' THEN 1 END) AS fixed_count FROM cs3213_issues WHERE dbms NOT IN ('N/A', '') GROUP BY dbms;");
 
-// Create a new issue
-app.post('/issue', async (req, res) => {
-  try {
-    const { title, description, date } = req.body;
-    const result = await db.pool.query(
-      'INSERT INTO issues (title, description, date) VALUES ($1, $2, $3) RETURNING id',
-      [title, description, date]
-    );
-
-    res.status(201).json({ id: result.rows[0].id, title, description, date });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    if (result.rowCount) {
+      return res.json(result.rows);
+    }
+  } catch (error) {
+    console.error('Error fetching issues from database:', error);
+    res.status(500).json({ error: 'Failed to fetch issues from the database.' });
   }
 });
 
@@ -144,7 +133,7 @@ app.post('/issue', async (req, res) => {
 app.delete('/issue/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await db.pool.query('DELETE FROM issues WHERE id = $1', [id]);
+    const result = await db.pool.query('DELETE FROM cs3213_issues WHERE id = $1', [id]);
 
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Issue not found' });

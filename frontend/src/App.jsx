@@ -4,6 +4,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import './App.css';
 import Header from './general/Header';
 import IssuesPage from './pages/IssuesPage';
+import SummaryPage from './pages/SummaryPage';
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         <Routes>
           <Route path="/" element={<IssuesPage />} />
+          <Route path="/summary" element={<SummaryPage />} />
         </Routes>
       </LocalizationProvider>
     </BrowserRouter>
