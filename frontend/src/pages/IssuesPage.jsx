@@ -3,14 +3,23 @@ import axios from 'axios';
 import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Box, IconButton, Snackbar, Tooltip } from '@mui/material';
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  Snackbar,
+  Tooltip
+} from '@mui/material';
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   OpenInNew as OpenInNewIcon
 } from '@mui/icons-material';
 import { MaterialReactTable, useMaterialReactTable } from 'material-react-table';
-import { useConfirm } from 'material-ui-confirm';
 
 const getEndOfDay = (max) => {
   const date = new Date(max);
@@ -41,8 +50,9 @@ function IssuesPage() {
   // Controls snackbar visibility after deleting a bug report
   const [snackbarOpen, setSnackbarOpen] = useState(false);
 
-  // Handles confirmation dialogs before deleting a bug report
-  const confirm = useConfirm();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedRow, setSelectedRow] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     axios.get('http://localhost:5000/statuses')
@@ -134,19 +144,27 @@ function IssuesPage() {
     table.setEditingRow(null); // Exit editing mode
   };
 
-  const handleDeleteBugReport = async (row) => {
-    const { id } = row.original;
+  const handleOpenDialog = (row) => {
+    setSelectedRow(row);
+    setDialogOpen(true);
+  };
 
-    const { confirmed } = await confirm({
-      title: 'Delete bug report?',
-      description: 'This bug report will be permanently deleted.',
-    });
+  const handleCloseDialog = () => {
+    setDialogOpen(false);
+    setSelectedRow(null);
+  };
 
-    if (confirmed) {
-      await axios.delete(`http://localhost:5000/issue/${id}`);
-      setIssues(prevIssues => prevIssues.filter(issue => issue.id !== id));
-      setSnackbarOpen(true);
-    }
+  const handleConfirmDelete = async () => {
+    setIsDeleting(true);
+
+    const { id } = selectedRow.original;
+    await axios.delete(`http://localhost:5000/issue/${id}`);
+
+    setIssues(prevIssues => prevIssues.filter(issue => issue.id !== id));
+
+    handleCloseDialog();
+    setSnackbarOpen(true);
+    setIsDeleting(false);
   };
 
   const table = useMaterialReactTable({
@@ -184,7 +202,7 @@ function IssuesPage() {
           </IconButton>
         </Tooltip>
         <Tooltip title="Delete">
-          <IconButton color="error" onClick={() => handleDeleteBugReport(row)}>
+          <IconButton color="error" onClick={() => handleOpenDialog(row)}>
             <DeleteIcon />
           </IconButton>
         </Tooltip>
@@ -201,7 +219,9 @@ function IssuesPage() {
   });
 
   const handleCloseSnackbar = (event, reason) => {
-    if (reason === 'clickaway') return; // Prevent closing if clicked outside
+    // Don't close snackbar when the user clicks outside of it
+    if (reason === 'clickaway') return;
+
     setSnackbarOpen(false);
   };
 
@@ -211,6 +231,15 @@ function IssuesPage() {
         <h2 className="font-bold">Issues Found</h2>
       </div>
       <MaterialReactTable table={table} />
+
+      <Dialog open={dialogOpen} onClose={handleCloseDialog}>
+        <DialogTitle>Delete bug report?</DialogTitle>
+        <DialogContent>This bug report will be permanently deleted.</DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog} disabled={isDeleting}>Cancel</Button>
+          <Button onClick={handleConfirmDelete} loading={isDeleting}>OK</Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
         open={snackbarOpen}
