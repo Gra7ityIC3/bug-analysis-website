@@ -98,6 +98,10 @@ async function fetchGitHubIssues() {
 }
 
 // Routes
+app.get('/statuses', (req, res) => {
+  res.json({ statuses: BugReport.shape.status.options });
+});
+
 app.get('/github_issues', async (req, res) => {
   try {
     const result = await db.pool.query('SELECT * FROM cs3213_issues ORDER BY created_at DESC');
@@ -108,6 +112,7 @@ app.get('/github_issues', async (req, res) => {
 
     const newIssues = await fetchGitHubIssues();
     const savedIssues = await db.saveIssuesUsingCopy(newIssues);
+
     res.json({ issues: savedIssues });
   } catch (error) {
     console.error('Error fetching issues from database:', error);
@@ -129,19 +134,41 @@ app.get('/dbms_summary_data', async (req, res) => {
   }
 });
 
+app.put('/issue/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { dbms, status } = req.body;
+
+    const result = await db.pool.query(
+      'UPDATE cs3213_issues SET dbms = $1, status = $2 WHERE id = $3',
+      [dbms, status, id]
+    );
+
+    if (result.rowCount) {
+      return res.status(204).send();
+    }
+
+    res.status(404).json({ error: 'Issue not found' });
+  } catch (error) {
+    console.error('Error updating issue:', error);
+    res.status(500).json({ error: 'Failed to update issue' });
+  }
+});
+
 // Delete an issue given its id
 app.delete('/issue/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const result = await db.pool.query('DELETE FROM cs3213_issues WHERE id = $1', [id]);
 
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Issue not found' });
+    if (result.rowCount) {
+      return res.status(204).send();
     }
 
-    res.json({ message: 'Issue deleted successfully' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(404).json({ error: 'Issue not found' });
+  } catch (error) {
+    console.error('Error deleting issue:', error);
+    res.status(500).json({ error: 'Failed to delete issue' });
   }
 });
 
