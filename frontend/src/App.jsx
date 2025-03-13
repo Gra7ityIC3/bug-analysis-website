@@ -5,6 +5,7 @@ import './App.css';
 import Header from './general/Header';
 import IssuesPage from './pages/IssuesPage';
 import SummaryPage from './pages/SummaryPage';
+import DatabaseSupportedPage from './pages/DatabaseSupportedPage';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <Routes>
           <Route path="/" element={<IssuesPage />} />
           <Route path="/summary" element={<SummaryPage />} />
+          <Route path="/database-supported" element={<DatabaseSupportedPage />} />
         </Routes>
       </LocalizationProvider>
     </BrowserRouter>

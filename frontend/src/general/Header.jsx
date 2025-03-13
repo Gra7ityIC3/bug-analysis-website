@@ -21,6 +21,7 @@ function Header() {
           <div class='flex justify-center items-center gap-4 p-2'>
             <a href='/'>Found Bugs</a>
             <a href='/summary'>Summary Statistics</a>
+            <a href='/database-supported'>Database Supported</a>
           </div>
         </div>
 
@@ -46,6 +47,7 @@ function Header() {
         <div className="flex flex-col space-y-2 mx-6">
           <a href='/'>Found Bugs</a>
           <a href='/summary'>Summary Statistics</a>
+          <a href='/database-supported'>Database Supported</a>
         </div>
       </div>
     </div>
