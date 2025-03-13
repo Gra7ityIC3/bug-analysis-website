@@ -109,7 +109,7 @@ function SummaryPage() {
     <div className="p-2">
       <div className="flex justify-between mb-2">
         <h2 className="font-bold">Summary Data By Database</h2>
-        <div className="flex gap-2 mr-2">
+        <div>
         <IconButton onClick={() => setIsTable(!isTable)}>
           {isTable ? (
             <InsertChartOutlinedOutlinedIcon sx={{ color: "white" }} />
