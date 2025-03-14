@@ -63,9 +63,14 @@ async function callOpenAIWithStructuredOutput(content, responseFormat) {
   return completion.choices[0].message.parsed;
 }
 
-async function fetchGitHubIssues() {
+async function fetchGitHubIssues(date = null) {
+  let query = 'sqlancer is:issue';
+  if (date) {
+    query += ` created:>${date.toISOString()}`;
+  }
+
   const response = await octokit.rest.search.issuesAndPullRequests({
-    q: 'sqlancer is:issue',
+    q: query,
     sort: 'created',
     order: 'desc',
     per_page: 30,
@@ -102,18 +107,10 @@ app.get('/statuses', (req, res) => {
   res.json({ statuses: BugReport.shape.status.options });
 });
 
-app.get('/github_issues', async (req, res) => {
+app.get('/issues', async (req, res) => {
   try {
     const result = await db.pool.query('SELECT * FROM cs3213_issues ORDER BY created_at DESC');
-
-    if (result.rowCount) {
-      return res.json({ issues: result.rows });
-    }
-
-    const newIssues = await fetchGitHubIssues();
-    const savedIssues = await db.saveIssuesUsingCopy(newIssues);
-
-    res.json({ issues: savedIssues });
+    res.json({ issues: result.rows });
   } catch (error) {
     console.error('Error fetching issues from database:', error);
     res.status(500).json({ error: 'Failed to fetch issues from the database.' });
@@ -123,14 +120,49 @@ app.get('/github_issues', async (req, res) => {
 // Return databases with open issues and the number of open issues
 app.get('/dbms_summary_data', async (req, res) => {
   try {
-    const result = await db.pool.query("SELECT dbms, COUNT(CASE WHEN status != 'Not a bug' THEN 1 END) AS total_count, COUNT(CASE WHEN status = 'Open' THEN 1 END) AS open_count, COUNT(CASE WHEN status = 'Fixed' THEN 1 END) AS fixed_count FROM cs3213_issues WHERE dbms NOT IN ('N/A', '') GROUP BY dbms;");
+    const text = `
+      SELECT dbms,
+             COUNT(*) FILTER (WHERE status != 'Not a bug') AS total_count,
+             COUNT(*) FILTER (WHERE status = 'Open') AS open_count,
+             COUNT(*) FILTER (WHERE status = 'Fixed') AS fixed_count
+      FROM cs3213_issues
+      WHERE dbms NOT IN ('N/A', '')
+      GROUP BY dbms
+      ORDER BY dbms ASC;
+    `;
 
-    if (result.rowCount) {
-      return res.json(result.rows);
-    }
+    const result = await db.pool.query(text);
+    res.json(result.rows);
   } catch (error) {
-    console.error('Error fetching issues from database:', error);
-    res.status(500).json({ error: 'Failed to fetch issues from the database.' });
+    console.error('Error fetching DBMS summary data:', error);
+    res.status(500).json({ error: 'Failed to fetch DBMS summary data.' });
+  }
+});
+
+app.post('/issues', async (req, res) => {
+  try {
+    const newIssues = await fetchGitHubIssues();
+    const savedIssues = await db.saveIssuesUsingCopy(newIssues);
+
+    res.json({ issues: savedIssues });
+  } catch (error) {
+    console.error('Error fetching issues from GitHub:', error);
+    res.status(500).json({ error: 'Failed to fetch issues from GitHub.' });
+  }
+});
+
+app.post('/issues/refresh', async (req, res) => {
+  try {
+    const result = await db.pool.query('SELECT MAX(created_at) AS latest FROM cs3213_issues');
+    const latestCreatedAt = result.rows[0].latest;
+
+    const newIssues = await fetchGitHubIssues(latestCreatedAt);
+    const savedIssues = newIssues.length > 0 ? await db.saveIssues(newIssues) : [];
+
+    res.json({ issues: savedIssues });
+  } catch (error) {
+    console.error('Error fetching new issues from GitHub:', error);
+    res.status(500).json({ error: 'Failed to fetch new issues from GitHub.' });
   }
 });
 

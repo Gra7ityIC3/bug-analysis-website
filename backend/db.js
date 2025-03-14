@@ -50,8 +50,10 @@ export const initializeDatabase = async () => {
 export const saveIssuesUsingCopy = async (issues) => {
   const client = await pool.connect();
   try {
-    const columns = Object.keys(issues[0]).join(', ');
-    const ingestStream = client.query(copyFrom(`COPY cs3213_issues (${columns}) FROM STDIN WITH CSV`));
+    const columns = Object.keys(issues[0]);
+    const ingestStream = client.query(
+      copyFrom(`COPY cs3213_issues (${columns.join(', ')}) FROM STDIN WITH CSV`)
+    );
     const sourceStream = Readable.from(json2csv(issues, { prependHeader: false }));
 
     await pipeline(sourceStream, ingestStream);
@@ -68,26 +70,27 @@ export const saveIssuesUsingCopy = async (issues) => {
 };
 
 export const saveIssues = async (issues) => {
+  const columns = Object.keys(issues[0]);
+  const n = columns.length;
+
+  const placeholders = issues
+    .map((_, i) => `(${Array.from({ length: n }, (_, j) => `$${i * n + j + 1}`).join(', ')})`)
+    .join(', ');
+
   const text = `
-    INSERT INTO cs3213_issues (creator, title, description, dbms, status, html_url, created_at, updated_at)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
+    INSERT INTO cs3213_issues (${columns.join(', ')})
+    VALUES ${placeholders}
+    RETURNING *;
   `;
 
-  const client = await pool.connect();
+  const values = issues.flatMap(issue => Object.values(issue));
 
   try {
-    await client.query('BEGIN');
-
-    for (const issue of issues) {
-      await client.query(text, Object.values(issue));
-    }
-
-    await client.query('COMMIT');
-    console.log(`Inserted ${issues.length} new issues.`);
+    const result = await pool.query(text, values);
+    console.log(`Inserted ${result.rowCount} new issues.`);
+    return result.rows;
   } catch (error) {
-    await client.query('ROLLBACK');
     console.error('Error inserting issues:', error);
-  } finally {
-    client.release();
+    return [];
   }
 };

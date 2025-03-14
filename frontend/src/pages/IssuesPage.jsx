@@ -17,9 +17,12 @@ import {
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
-  OpenInNew as OpenInNewIcon
+  OpenInNew as OpenInNewIcon,
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { MaterialReactTable, useMaterialReactTable } from 'material-react-table';
+
+const API_BASE_URL = 'http://localhost:5000';
 
 const getEndOfDay = (max) => {
   const date = new Date(max);
@@ -43,27 +46,54 @@ const DateCell = ({ cell }) => {
 };
 
 function IssuesPage() {
-  const [statuses, setStatuses] = useState([]);
   const [issues, setIssues] = useState([]);
+  const [statuses, setStatuses] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefetching, setIsRefetching] = useState(false);
 
-  // Controls snackbar visibility after deleting a bug report
+  const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarOpen, setSnackbarOpen] = useState(false);
 
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    axios.get('http://localhost:5000/statuses')
+    axios.get(`${API_BASE_URL}/statuses`)
       .then(response => setStatuses(response.data.statuses));
   }, []);
 
   useEffect(() => {
-    axios.get('http://localhost:5000/github_issues')
-      .then(response => setIssues(response.data.issues))
-      .catch(error => console.error('Error fetching issues:', error))
-      .finally(() => setIsLoading(false));
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    const fetchIssues = async () => {
+      try {
+        const getResponse = await axios.get(`${API_BASE_URL}/issues`, { signal });
+        const issues = getResponse.data.issues;
+
+        if (issues.length > 0) {
+          setIssues(issues);
+        } else {
+          const postResponse = await axios.post(`${API_BASE_URL}/issues`, null, { signal });
+          setIssues(postResponse.data.issues);
+        }
+      } catch (error) {
+        if (axios.isCancel(error)) {
+          console.warn('Issue fetch request was aborted:', error.message);
+        } else {
+          console.error('Error fetching issues:', error);
+        }
+      } finally {
+        if (!signal.aborted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchIssues();
+
+    return () => controller.abort();
   }, []);
 
   const columns = useMemo(
@@ -129,7 +159,7 @@ function IssuesPage() {
     const { id } = row.original;
     const { dbms, status } = values;
 
-    await axios.put(`http://localhost:5000/issue/${id}`, { dbms, status });
+    await axios.put(`${API_BASE_URL}/issue/${id}`, { dbms, status });
 
     setIssues(prevIssues =>
       prevIssues.map(issue => {
@@ -158,13 +188,37 @@ function IssuesPage() {
     setIsDeleting(true);
 
     const { id } = selectedRow.original;
-    await axios.delete(`http://localhost:5000/issue/${id}`);
+    await axios.delete(`${API_BASE_URL}/issue/${id}`);
 
     setIssues(prevIssues => prevIssues.filter(issue => issue.id !== id));
 
     handleCloseDialog();
+    setSnackbarMessage('Bug report deleted')
     setSnackbarOpen(true);
     setIsDeleting(false);
+  };
+
+  const handleRefreshIssues = async () => {
+    setIsRefetching(true);
+
+    try {
+      const response = await axios.post(`${API_BASE_URL}/issues/refresh`);
+      const newIssues = response.data.issues;
+      const newCount = newIssues.length;
+
+      if (newCount > 0) {
+        setIssues(prevIssues => [...newIssues, ...prevIssues]);
+        setSnackbarMessage(`${newCount} new bug report${newCount === 1 ? '' : 's'} added`);
+      } else {
+        setSnackbarMessage('No new bug reports found')
+      }
+    } catch (error) {
+      console.error('Error refreshing issues:', error);
+      setSnackbarMessage('Failed to refresh issues');
+    } finally {
+      setIsRefetching(false);
+      setSnackbarOpen(true);
+    }
   };
 
   const table = useMaterialReactTable({
@@ -213,8 +267,16 @@ function IssuesPage() {
         </Tooltip>
       </Box>
     ),
+    renderTopToolbarCustomActions: () => (
+      <Tooltip arrow title="Refresh issues">
+        <IconButton onClick={handleRefreshIssues} loading={isRefetching}>
+          <RefreshIcon />
+        </IconButton>
+      </Tooltip>
+    ),
     state: {
       isLoading,
+      showProgressBars: isRefetching,
     },
   });
 
@@ -246,7 +308,7 @@ function IssuesPage() {
         onClose={handleCloseSnackbar}
         autoHideDuration={4000}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        message="Bug report deleted"
+        message={snackbarMessage}
       />
     </div>
   );
