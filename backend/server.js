@@ -66,7 +66,7 @@ async function callOpenAIWithStructuredOutput(content, responseFormat) {
 async function fetchGitHubIssues(date = null) {
   let query = 'sqlancer is:issue';
   if (date) {
-    query += ` created:>${date.toISOString()}`;
+    query += ` created:>${date}`;
   }
 
   const response = await octokit.rest.search.issuesAndPullRequests({
@@ -153,11 +153,13 @@ app.post('/issues', async (req, res) => {
 
 app.post('/issues/refresh', async (req, res) => {
   try {
-    const result = await db.pool.query('SELECT MAX(created_at) AS latest FROM cs3213_issues');
-    const latestCreatedAt = result.rows[0].latest;
+    const result = await db.pool.query(
+      "SELECT value FROM cs3213_metadata WHERE key = 'latest_created_at'"
+    );
+    const latestCreatedAt = result.rows[0].value;
 
     const newIssues = await fetchGitHubIssues(latestCreatedAt);
-    const savedIssues = newIssues.length > 0 ? await db.saveIssues(newIssues) : [];
+    const savedIssues = await db.saveIssues(newIssues);
 
     res.json({ issues: savedIssues });
   } catch (error) {
