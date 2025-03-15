@@ -53,36 +53,16 @@ export const initializeDatabase = async () => {
   }
 };
 
-const insertIssuesUsingCopy = async (client, issues) => {
-  const columns = Object.keys(issues[0]);
-  const ingestStream = client.query(
-    copyFrom(`COPY cs3213_issues (${columns.join(', ')}) FROM STDIN WITH CSV`)
-  );
-  const sourceStream = Readable.from(json2csv(issues, {prependHeader: false}));
-
-  await pipeline(sourceStream, ingestStream);
-};
-
-const updateMetadata = async (client, key, value) => {
-  await client.query(
-    `INSERT INTO cs3213_metadata (key, value) 
-     VALUES ($1, $2)
-     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
-    [key, value]
-  );
-};
-
 /**
  * Inserts multiple issues into the database using PostgreSQL's `COPY` command
- * and updates the latest `created_at` timestamp in the metadata table.
+ * and updates the `latest_created_at` value in the metadata table to track the
+ * timestamp of the most recent issue fetched from GitHub.
  *
  * @param {Array<Object>} issues An array of issue objects to be inserted.
  * @returns {Promise<Array<Object>>} A promise that resolves to an array of inserted issues
  * from the database or an empty array if no issues were provided.
  *
- * @throws {Error} Logs an error if the `COPY` operation fails and returns an empty array.
- *
- * @note `COPY` is optimized for bulk insertions, which incur significantly less overhead
+ * @note `COPY` is optimized for **bulk insertions**, which incur significantly less overhead
  *       compared to multiple `INSERT` statements and even the multirow `VALUES` syntax.
  */
 export const saveIssuesUsingCopy = async (issues) => {
@@ -113,9 +93,65 @@ export const saveIssuesUsingCopy = async (issues) => {
   }
 };
 
+/**
+ * Inserts multiple issues into the database using PostgreSQL's multirow `VALUES` syntax
+ * and updates the `latest_created_at` value in the metadata table to track the timestamp
+ * of the most recent issue fetched from GitHub.
+ *
+ * @param {Array<Object>} issues An array of issue objects to be inserted.
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of inserted issues
+ * from the database or an empty array if no issues were provided.
+ *
+ * @note The multirow `VALUES` syntax is more efficient than `COPY` for small to medium inserts
+ *       and faster than executing multiple `INSERT` statements.
+ */
 export const saveIssues = async (issues) => {
   if (!issues.length) return [];
 
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const query = buildInsertQuery(issues);
+    const result = await client.query(query);
+    console.log(`Inserted ${result.rowCount} new issues.`);
+
+    // Issues are sorted in descending order of created_at from GitHub
+    const latestCreatedAt = issues[0].created_at;
+    await updateMetadata(client, 'latest_created_at', latestCreatedAt);
+
+    await client.query('COMMIT');
+    return result.rows;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error inserting issues:', error);
+    return [];
+  } finally {
+    client.release();
+  }
+};
+
+const insertIssuesUsingCopy = async (client, issues) => {
+  const columns = Object.keys(issues[0]);
+  const ingestStream = client.query(
+    copyFrom(`COPY cs3213_issues (${columns.join(', ')}) FROM STDIN WITH CSV`)
+  );
+  const sourceStream = Readable.from(json2csv(issues, {prependHeader: false}));
+
+  await pipeline(sourceStream, ingestStream);
+};
+
+const updateMetadata = async (client, key, value) => {
+  await client.query(
+    `INSERT INTO cs3213_metadata (key, value) 
+     VALUES ($1, $2)
+     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
+    [key, value]
+  );
+};
+
+const buildInsertQuery = (issues) => {
   const columns = Object.keys(issues[0]);
   const n = columns.length;
 
@@ -131,23 +167,5 @@ export const saveIssues = async (issues) => {
 
   const values = issues.flatMap(issue => Object.values(issue));
 
-  const client = await pool.connect();
-
-  try {
-    await client.query('BEGIN');
-
-    const result = await client.query(text, values);
-    console.log(`Inserted ${result.rowCount} new issues.`);
-
-    // Issues are sorted in descending order of created_at from GitHub
-    const latestCreatedAt = issues[0].created_at;
-    await updateMetadata(client, 'latest_created_at', latestCreatedAt);
-
-    await client.query('COMMIT');
-    return result.rows;
-  } catch (error) {
-    await client.query('ROLLBACK');
-    console.error('Error inserting issues:', error);
-    return [];
-  }
+  return { text, values };
 };
