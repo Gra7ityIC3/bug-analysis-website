@@ -3,7 +3,6 @@ import express from 'express';
 import cors from 'cors';
 import * as db from './db.js';
 import { Octokit } from '@octokit/rest';
-import fs from 'fs/promises';
 
 import OpenAI from 'openai';
 import { zodResponseFormat } from 'openai/helpers/zod';
@@ -49,7 +48,7 @@ ${comments.map(comment => comment.body).join('\n\n')}`
 
 async function callOpenAIWithStructuredOutput(content, responseFormat) {
   const completion = await openai.beta.chat.completions.parse({
-    model: 'gpt-4o-mini',
+    model: 'gpt-4o',
     temperature: 0.2, // Reduce randomness
     messages: [
       {
@@ -65,78 +64,42 @@ async function callOpenAIWithStructuredOutput(content, responseFormat) {
 }
 
 async function fetchGitHubIssues(date = null) {
-//  let query = 'sqlancer is:issue';
-//  if (date != null) {
-//    query += ` updated:>${date}`;
-//  }
-//
-//  let newIssues = [];
-//  let page = 1;
-//  let hasMore = true;
-//
-//  while (hasMore) {
-//    try {
-//      const response = await octokit.rest.search.issuesAndPullRequests({
-//        q: query,
-//        sort: 'updated',
-//        order: 'desc',
-//        per_page: 50,
-//        page: page,
-//      });
-//
-//      hasMore = response.data.items.length > 0;
-//      if (hasMore) {
-//        page++;
-//        await new Promise(resolve => setTimeout(resolve, 2000)); // Throttle
-//      }
-//      newIssues.push(...response.data.items);
-//
-//    } catch (error) {
-//      console.error('Error fetching GitHub issues:', error);
-//      hasMore = false;
-//    }
-//  }
-//
-//  const processedIssues = [];
-//  let counter = 1;
-//
-//  for (const issue of newIssues) {
-//    try {
-//      const [owner, repo] = issue.repository_url.split('/').slice(-2);
-//      const { data: comments } = await octokit.rest.issues.listComments({
-//        owner,
-//        repo,
-//        issue_number: issue.number,
-//      });
-//
-//      // Wait for 2 seconds between requests
-//      await new Promise(resolve => setTimeout(resolve, 2000));
-//
-//      const { prompt, responseFormat } = getPromptAndResponseFormat(issue, comments);
-//      const bugReport = await callOpenAIWithStructuredOutput(prompt, responseFormat);
-//
-//      // Wait for another 2 seconds before proceeding
-//      await new Promise(resolve => setTimeout(resolve, 2000));
-//
-//      processedIssues.push({
-//        creator: issue.user.login,
-//        title: issue.title,
-//        description: issue.body,
-//        dbms: bugReport.dbms,
-//        status: bugReport.status,
-//        html_url: issue.html_url,
-//        created_at: issue.created_at,
-//        updated_at: issue.updated_at,
-//      });
-//      console.log("Cleared issue: ", counter);
-//      counter++;
-//    } catch (error) {
-//      console.log("Error processing issue: ", issue, error);
-//      processedIssues.push(null);
-//    }
-//  }
-//
-//  return processedIssues;
+  let query = 'sqlancer is:issue';
+  if (date) {
+    query += ` created:>${date}`;
+  }
+
+  const response = await octokit.rest.search.issuesAndPullRequests({
+    q: query,
+    sort: 'created',
+    order: 'desc',
+    per_page: 30,
+  });
+
+  return await Promise.all(
+    response.data.items.map(async issue => {
+      const [owner, repo] = issue.repository_url.split('/').slice(-2);
+      const { data: comments } = await octokit.rest.issues.listComments({
+        owner,
+        repo,
+        issue_number: issue.number,
+      });
+
+      const { prompt, responseFormat } = getPromptAndResponseFormat(issue, comments);
+      const bugReport = await callOpenAIWithStructuredOutput(prompt, responseFormat);
+
+      return {
+        creator: issue.user.login,
+        title: issue.title,
+        description: issue.body,
+        dbms: bugReport.dbms,
+        status: bugReport.status,
+        html_url: issue.html_url,
+        created_at: issue.created_at,
+        updated_at: issue.updated_at,
+      };
+    })
+  );
 }
 
 // Routes
@@ -188,7 +151,7 @@ app.post('/issues', async (req, res) => {
   }
 });
 
-app.post('/issues/refresh', async (req, res) => { // TODO: use latest_updated_at
+app.post('/issues/refresh', async (req, res) => {
   try {
     const result = await db.pool.query(
       "SELECT value FROM cs3213_metadata WHERE key = 'latest_created_at'"
@@ -242,8 +205,6 @@ app.delete('/issue/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to delete issue' });
   }
 });
-
-fetchGitHubIssues();
 
 // Start server
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
