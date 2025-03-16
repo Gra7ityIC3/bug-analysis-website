@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
+  Alert,
   Box,
   Button,
   Dialog,
@@ -11,7 +12,7 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
-  Snackbar,
+  Snackbar, SnackbarContent,
   Tooltip
 } from '@mui/material';
 import {
@@ -48,9 +49,12 @@ const DateCell = ({ cell }) => {
 function IssuesPage() {
   const [issues, setIssues] = useState([]);
   const [statuses, setStatuses] = useState([]);
+
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [isRefetching, setIsRefetching] = useState(false);
 
+  const [isError, setIsError] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarOpen, setSnackbarOpen] = useState(false);
 
@@ -156,22 +160,33 @@ function IssuesPage() {
   );
 
   const handleSaveBugReport = async ({ table, values, row }) => {
-    const { id } = row.original;
-    const { dbms, status } = values;
+    setIsSaving(true);
 
-    await axios.put(`${API_BASE_URL}/issue/${id}`, { dbms, status });
+    try {
+      const { id } = row.original;
+      const { dbms, status } = values;
 
-    setIssues(prevIssues =>
-      prevIssues.map(issue => {
-        if (issue.id === id) {
-          issue.dbms = dbms;
-          issue.status = status;
-        }
-        return issue;
-      })
-    );
+      await axios.put(`${API_BASE_URL}/issue/${id}`, { dbms, status });
 
-    table.setEditingRow(null); // Exit editing mode
+      setIssues(prevIssues =>
+        prevIssues.map(issue => {
+          if (issue.id === id) {
+            issue.dbms = dbms;
+            issue.status = status;
+          }
+          return issue;
+        })
+      );
+
+      table.setEditingRow(null); // Exit editing mode
+    } catch (error) {
+      console.error('Error updating bug report:', error);
+      setIsError(true);
+      setSnackbarMessage('Failed to update bug report');
+      setSnackbarOpen(true);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleOpenDialog = (row) => {
@@ -187,15 +202,23 @@ function IssuesPage() {
   const handleConfirmDelete = async () => {
     setIsDeleting(true);
 
-    const { id } = selectedRow.original;
-    await axios.delete(`${API_BASE_URL}/issue/${id}`);
+    try {
+      const { id } = selectedRow.original;
+      await axios.delete(`${API_BASE_URL}/issue/${id}`);
 
-    setIssues(prevIssues => prevIssues.filter(issue => issue.id !== id));
+      setIssues(prevIssues => prevIssues.filter(issue => issue.id !== id));
 
-    handleCloseDialog();
-    setSnackbarMessage('Bug report deleted')
-    setSnackbarOpen(true);
-    setIsDeleting(false);
+      handleCloseDialog();
+      setIsError(false);
+      setSnackbarMessage('Bug report deleted');
+    } catch (error) {
+      console.error('Error deleting bug report:', error);
+      setIsError(true);
+      setSnackbarMessage('Failed to delete bug report');
+    } finally {
+      setIsDeleting(false);
+      setSnackbarOpen(true);
+    }
   };
 
   const handleRefreshIssues = async () => {
@@ -204,16 +227,19 @@ function IssuesPage() {
     try {
       const response = await axios.post(`${API_BASE_URL}/issues/refresh`);
       const newIssues = response.data.issues;
-      const newCount = newIssues.length;
+      const count = newIssues.length;
 
-      if (newCount > 0) {
+      setIsError(false);
+
+      if (count > 0) {
         setIssues(prevIssues => [...newIssues, ...prevIssues]);
-        setSnackbarMessage(`${newCount} new bug report${newCount === 1 ? '' : 's'} added`);
+        setSnackbarMessage(`${count} new bug report${count === 1 ? '' : 's'} added`);
       } else {
         setSnackbarMessage('No new bug reports found')
       }
     } catch (error) {
       console.error('Error refreshing issues:', error);
+      setIsError(true);
       setSnackbarMessage('Failed to refresh issues');
     } finally {
       setIsRefetching(false);
@@ -276,6 +302,7 @@ function IssuesPage() {
     ),
     state: {
       isLoading,
+      isSaving,
       showProgressBars: isRefetching,
     },
   });
@@ -308,8 +335,15 @@ function IssuesPage() {
         onClose={handleCloseSnackbar}
         autoHideDuration={4000}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        message={snackbarMessage}
-      />
+      >
+        {isError ? (
+          <Alert severity="error" onClose={handleCloseSnackbar}>
+            {snackbarMessage}
+          </Alert>
+        ) : (
+          <SnackbarContent message={snackbarMessage} />
+        )}
+      </Snackbar>
     </div>
   );
 }

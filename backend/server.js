@@ -73,7 +73,7 @@ async function fetchGitHubIssues(date = null) {
     q: query,
     sort: 'created',
     order: 'desc',
-    per_page: 30,
+    per_page: 50,
   });
 
   return await Promise.all(
