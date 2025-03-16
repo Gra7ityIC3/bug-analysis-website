@@ -3,6 +3,7 @@ import { pipeline } from 'stream/promises';
 import pkg from 'pg';
 import { from as copyFrom } from 'pg-copy-streams';
 import { json2csv } from 'json-2-csv';
+import fs from 'fs/promises';
 
 const { Pool } = pkg;
 
@@ -45,6 +46,21 @@ export const initializeDatabase = async () => {
     await client.query('COMMIT');
 
     console.log('Tables cs3213_issues and cs3213_metadata have been created (or already exist).');
+
+    const output = await client.query('SELECT COUNT(*) FROM cs3213_issues;');
+    const issueCount = parseInt(output.rows[0].count, 10);
+
+    // Populate DB from github_issues_parsed.json
+    if (issueCount === 0) {
+      console.log('Initial database is empty, population with default data')
+
+      const file = await fs.readFile('github_issues_parsed.json', 'utf-8')
+      const data = JSON.parse(file)
+      const savedIssues = await saveIssuesUsingCopy(data);
+
+      console.log('Successfully added default data');
+    }
+
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Error initializing database:', error);
@@ -78,7 +94,7 @@ export const saveIssuesUsingCopy = async (issues) => {
 
     // Issues are sorted in descending order of created_at from GitHub
     const latestCreatedAt = issues[0].created_at;
-    await updateMetadata(client, 'latest_created_at', latestCreatedAt);
+    await updateMetadata(client, 'latest_created_at', latestCreatedAt); // TODO change to use latest_updated_at
 
     await client.query('COMMIT');
 
@@ -118,7 +134,7 @@ export const saveIssues = async (issues) => {
     console.log(`Inserted ${result.rowCount} new issues.`);
 
     // Issues are sorted in descending order of created_at from GitHub
-    const latestCreatedAt = issues[0].created_at;
+    const latestCreatedAt = issues[0].created_at; // TODO change to use latest_updated_at
     await updateMetadata(client, 'latest_created_at', latestCreatedAt);
 
     await client.query('COMMIT');
