@@ -23,7 +23,7 @@ import {
 } from '@mui/icons-material';
 import { MaterialReactTable, useMaterialReactTable } from 'material-react-table';
 
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = 'http://localhost:5001';
 
 const getEndOfDay = (max) => {
   const date = new Date(max);

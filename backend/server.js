@@ -139,6 +139,71 @@ app.get('/dbms_summary_data', async (req, res) => {
   }
 });
 
+app.get('/dbms_monthly_data', async (req, res) => {
+  try {
+    // Get the earliest and latest months to fill in gaps
+    const rangeQuery = `
+      SELECT 
+        DATE_TRUNC('month', MIN(created_at)) AS start_month,
+        DATE_TRUNC('month', MAX(created_at)) AS end_month
+      FROM cs3213_issues
+      WHERE dbms NOT IN ('N/A', '')
+        AND status != 'Not a bug';
+    `;
+    const rangeResult = await db.pool.query(rangeQuery);
+    const { start_month, end_month } = rangeResult.rows[0];
+
+    // Get the bug counts
+    const dataQuery = `
+      SELECT 
+        dbms,
+        DATE_TRUNC('month', created_at) AS month,
+        COUNT(*) AS total_bugs
+      FROM cs3213_issues
+      WHERE dbms NOT IN ('N/A', '')
+        AND status != 'Not a bug'
+      GROUP BY dbms, DATE_TRUNC('month', created_at)
+      ORDER BY month ASC, dbms ASC;
+    `;
+    const dataResult = await db.pool.query(dataQuery);
+
+    // Generate all months between start and end
+    const months = [];
+    let currentMonth = new Date(start_month);
+    while (currentMonth <= end_month) {
+      months.push(new Date(currentMonth));
+      currentMonth.setMonth(currentMonth.getMonth() + 1);
+    }
+
+    // Organize data by DBMS
+    const monthlyData = {};
+    const dbmsSet = new Set(dataResult.rows.map(row => row.dbms));
+    
+    // Initialize each DBMS with all months set to 0
+    dbmsSet.forEach(dbms => {
+      monthlyData[dbms] = months.map(month => ({
+        month: month.toISOString().slice(0, 7),
+        total_bugs: 0
+      }));
+    });
+
+    // Fill in actual bug counts
+    dataResult.rows.forEach(row => {
+      const monthStr = row.month.toISOString().slice(0, 7);
+      const dbmsData = monthlyData[row.dbms];
+      const monthEntry = dbmsData.find(entry => entry.month === monthStr);
+      if (monthEntry) {
+        monthEntry.total_bugs = parseInt(row.total_bugs);
+      }
+    });
+
+    res.json(monthlyData);
+  } catch (error) {
+    console.error('Error fetching DBMS monthly data:', error);
+    res.status(500).json({ error: 'Failed to fetch DBMS monthly data' });
+  }
+});
+
 app.post('/issues', async (req, res) => {
   try {
     const newIssues = await fetchGitHubIssues();
