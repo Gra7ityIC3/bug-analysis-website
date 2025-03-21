@@ -46,6 +46,19 @@ const DateCell = ({ cell }) => {
   );
 };
 
+const getRefreshSnackbarMessage = (newCount, updatedCount) => {
+  const messages = [];
+
+  if (newCount > 0) {
+    messages.push(`${newCount} new bug report${newCount === 1 ? '' : 's'} added`);
+  }
+  if (updatedCount > 0) {
+    messages.push(`${updatedCount} bug report${updatedCount === 1 ? '' : 's'} updated`);
+  }
+
+  return messages.join(', ') || 'No new or updated bug reports found';
+};
+
 function IssuesPage() {
   const [issues, setIssues] = useState([]);
   const [statuses, setStatuses] = useState([]);
@@ -73,14 +86,14 @@ function IssuesPage() {
 
     const fetchIssues = async () => {
       try {
-        const getResponse = await axios.get(`${API_BASE_URL}/issues`, { signal });
-        const issues = getResponse.data.issues;
+        const response = await axios.get(`${API_BASE_URL}/issues`, { signal });
+        const issues = response.data.issues;
 
         if (issues.length > 0) {
           setIssues(issues);
         } else {
-          const postResponse = await axios.post(`${API_BASE_URL}/issues`, null, { signal });
-          setIssues(postResponse.data.issues);
+          const response = await axios.post(`${API_BASE_URL}/issues`, null, { signal });
+          setIssues(response.data.issues);
         }
       } catch (error) {
         if (axios.isCancel(error)) {
@@ -226,17 +239,20 @@ function IssuesPage() {
 
     try {
       const response = await axios.post(`${API_BASE_URL}/issues/refresh`);
-      const newIssues = response.data.issues;
-      const count = newIssues.length;
+      const { newIssues, updatedIssues } = response.data;
+
+      const newCount = newIssues.length;
+      const updatedCount = updatedIssues.length;
+
+      if (newCount > 0 || updatedCount > 0) {
+        setIssues(prevIssues => {
+          const map = new Map(updatedIssues.map(issue => [issue.id, issue]));
+          return [...newIssues, ...prevIssues.map(issue => map.get(issue.id) ?? issue)]
+        });
+      }
 
       setIsError(false);
-
-      if (count > 0) {
-        setIssues(prevIssues => [...newIssues, ...prevIssues]);
-        setSnackbarMessage(`${count} new bug report${count === 1 ? '' : 's'} added`);
-      } else {
-        setSnackbarMessage('No new bug reports found')
-      }
+      setSnackbarMessage(getRefreshSnackbarMessage(newCount, updatedCount));
     } catch (error) {
       console.error('Error refreshing issues:', error);
       setIsError(true);
@@ -333,7 +349,7 @@ function IssuesPage() {
       <Snackbar
         open={snackbarOpen}
         onClose={handleCloseSnackbar}
-        autoHideDuration={4000}
+        autoHideDuration={6000}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
         {isError ? (

@@ -55,12 +55,14 @@ export const initializeDatabase = async () => {
 
 /**
  * Inserts multiple issues into the database using PostgreSQL's `COPY` command
- * and updates the `latest_created_at` value in the metadata table to track the
- * timestamp of the most recent issue fetched from GitHub.
+ * and updates the `latest_updated_at` value in the metadata table to track the
+ * timestamp of the most recently updated issue fetched from GitHub.
  *
- * @param {Array<Object>} issues An array of issue objects to be inserted.
+ * @param {Array<Object>} issues An array of issue objects to insert into the database.
  * @returns {Promise<Array<Object>>} A promise that resolves to an array of inserted issues
  * from the database or an empty array if no issues were provided.
+ *
+ * @throws {Error} Throws an error if the `COPY` command or metadata update fails.
  *
  * @note `COPY` is optimized for **bulk insertions**, which incur significantly less overhead
  *       compared to multiple `INSERT` statements and even the multirow `VALUES` syntax.
@@ -76,10 +78,8 @@ export const saveIssuesUsingCopy = async (issues) => {
     await insertIssuesUsingCopy(client, issues);
     console.log(`Inserted ${issues.length} new issues using COPY.`);
 
-    // Issues are sorted in descending order of created_at from GitHub
-    const latestCreatedAt = issues[0].created_at;
-    await updateMetadata(client, 'latest_created_at', latestCreatedAt);
-
+    // Issues are sorted in descending order of updated_at from GitHub
+    await updateMetadata(client, 'latest_updated_at', issues[0].updated_at);
     await client.query('COMMIT');
 
     const result = await client.query('SELECT * FROM cs3213_issues ORDER BY created_at DESC');
@@ -87,46 +87,56 @@ export const saveIssuesUsingCopy = async (issues) => {
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Error inserting issues using COPY:', error);
-    return [];
+    throw error;
   } finally {
     client.release();
   }
 };
 
 /**
- * Inserts multiple issues into the database using PostgreSQL's multirow `VALUES` syntax
- * and updates the `latest_created_at` value in the metadata table to track the timestamp
- * of the most recent issue fetched from GitHub.
+ * Processes and saves issues into the database by updating existing ones and inserting new
+ * ones, using {@link filterAndUpdateIssues} to determine whether an issue is new or updated.
  *
- * @param {Array<Object>} issues An array of issue objects to be inserted.
- * @returns {Promise<Array<Object>>} A promise that resolves to an array of inserted issues
- * from the database or an empty array if no issues were provided.
+ * Also updates the `latest_updated_at` value in the metadata table to track the timestamp
+ * of the most recently updated issue fetched from GitHub.
  *
- * @note The multirow `VALUES` syntax is more efficient than `COPY` for small to medium inserts
- *       and faster than executing multiple `INSERT` statements.
+ * @param {Array<Object>} issues An array of issue objects to process and save into the database.
+ * @param {string} latestUpdatedAt The `latest_updated_at` value in the metadata table,
+ * used to determine whether an issue is new or updated.
+ *
+ * @returns {Promise<{ newIssues: Array<Object>, updatedIssues: Array<Object> }>} A promise
+ * that resolves to an object containing arrays of newly inserted and updated issues.
+ *
+ * @throws {Error} Throws an error if updating existing issues, inserting new issues,
+ * or updating metadata fails.
  */
-export const saveIssues = async (issues) => {
-  if (!issues.length) return [];
+export const processAndSaveIssues = async (issues, latestUpdatedAt) => {
+  if (!issues.length) {
+    return { newIssues: [], updatedIssues: [] };
+  }
 
   const client = await pool.connect();
 
   try {
     await client.query('BEGIN');
 
-    const query = buildInsertQuery(issues);
-    const result = await client.query(query);
-    console.log(`Inserted ${result.rowCount} new issues.`);
+    let { newIssues, updatedIssues } = await filterAndUpdateIssues(client, issues, latestUpdatedAt);
 
-    // Issues are sorted in descending order of created_at from GitHub
-    const latestCreatedAt = issues[0].created_at;
-    await updateMetadata(client, 'latest_created_at', latestCreatedAt);
+    if (newIssues.length > 0) {
+      const query = buildInsertQuery(newIssues);
+      const result = await client.query(query);
+      newIssues = result.rows;
+    }
 
+    // Issues are sorted in descending order of updated_at from GitHub
+    await updateMetadata(client, 'latest_updated_at', issues[0].updated_at);
     await client.query('COMMIT');
-    return result.rows;
+
+    return { newIssues, updatedIssues };
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('Error inserting issues:', error);
-    return [];
+    console.error('Error processing and saving issues:', error);
+    throw error;
   } finally {
     client.release();
   }
@@ -137,9 +147,40 @@ const insertIssuesUsingCopy = async (client, issues) => {
   const ingestStream = client.query(
     copyFrom(`COPY cs3213_issues (${columns.join(', ')}) FROM STDIN WITH CSV`)
   );
-  const sourceStream = Readable.from(json2csv(issues, {prependHeader: false}));
+  const sourceStream = Readable.from(json2csv(issues, { prependHeader: false }));
 
   await pipeline(sourceStream, ingestStream);
+};
+
+const filterAndUpdateIssues = async (client, issues, latestUpdatedAt) => {
+  const newIssues = [];
+  const updatedIssues = [];
+
+  const updateIssueText = `
+    UPDATE cs3213_issues
+    SET title = $1, description = $2, dbms = $3, status = $4, updated_at = $5
+    WHERE html_url = $6
+    RETURNING *;
+  `;
+
+  for (const issue of issues) {
+    if (issue.created_at > latestUpdatedAt) {
+      newIssues.push(issue);
+    } else {
+      const result = await client.query(updateIssueText, [
+        issue.title, issue.description, issue.dbms, issue.status, issue.updated_at,
+        issue.html_url
+      ]);
+
+      // If the issue was not updated, it was likely deleted by the user
+      // and should not be re-inserted.
+      if (result.rowCount) {
+        updatedIssues.push(result.rows[0]);
+      }
+    }
+  }
+
+  return { newIssues, updatedIssues };
 };
 
 const updateMetadata = async (client, key, value) => {
@@ -160,9 +201,13 @@ const buildInsertQuery = (issues) => {
     .join(', ');
 
   const text = `
-    INSERT INTO cs3213_issues (${columns.join(', ')})
-    VALUES ${placeholders}
-    RETURNING *;
+    WITH inserted_issues AS (
+        INSERT INTO cs3213_issues (${columns.join(', ')})
+        VALUES ${placeholders}
+        RETURNING *
+    )
+    SELECT * FROM inserted_issues
+    ORDER BY created_at DESC;
   `;
 
   const values = issues.flatMap(issue => Object.values(issue));

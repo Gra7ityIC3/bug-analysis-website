@@ -66,12 +66,12 @@ async function callOpenAIWithStructuredOutput(content, responseFormat) {
 async function fetchGitHubIssues(date = null) {
   let query = 'sqlancer is:issue';
   if (date) {
-    query += ` created:>${date}`;
+    query += ` updated:>${date}`;
   }
 
   const response = await octokit.rest.search.issuesAndPullRequests({
     q: query,
-    sort: 'created',
+    sort: 'updated',
     order: 'desc',
     per_page: 50,
   });
@@ -219,17 +219,17 @@ app.post('/issues', async (req, res) => {
 app.post('/issues/refresh', async (req, res) => {
   try {
     const result = await db.pool.query(
-      "SELECT value FROM cs3213_metadata WHERE key = 'latest_created_at'"
+      "SELECT value FROM cs3213_metadata WHERE key = 'latest_updated_at'"
     );
-    const latestCreatedAt = result.rows[0].value;
 
-    const newIssues = await fetchGitHubIssues(latestCreatedAt);
-    const savedIssues = await db.saveIssues(newIssues);
+    const latestUpdatedAt = result.rows[0].value;
+    const issues = await fetchGitHubIssues(latestUpdatedAt);
 
-    res.json({ issues: savedIssues });
+    const { newIssues, updatedIssues } = await db.processAndSaveIssues(issues, latestUpdatedAt);
+    res.json({ newIssues, updatedIssues });
   } catch (error) {
-    console.error('Error fetching new issues from GitHub:', error);
-    res.status(500).json({ error: 'Failed to fetch new issues from GitHub.' });
+    console.error('Error fetching recently updated issues from GitHub:', error);
+    res.status(500).json({ error: 'Failed to fetch recently updated issues from GitHub.' });
   }
 });
 
