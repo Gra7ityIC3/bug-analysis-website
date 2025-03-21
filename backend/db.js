@@ -123,7 +123,7 @@ export const processAndSaveIssues = async (issues, latestUpdatedAt) => {
     let { newIssues, updatedIssues } = await filterAndUpdateIssues(client, issues, latestUpdatedAt);
 
     if (newIssues.length > 0) {
-      const query = buildInsertQuery(issues);
+      const query = buildInsertQuery(newIssues);
       const result = await client.query(query);
       newIssues = result.rows;
     }
