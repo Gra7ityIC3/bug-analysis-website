@@ -3,22 +3,17 @@ import axios from 'axios';
 import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { styled } from '@mui/material/styles';
 import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  Grid,
   IconButton,
-  Snackbar,
-  Tooltip,
-  Typography,
+  Snackbar, SnackbarContent,
+  Tooltip
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -26,19 +21,13 @@ import {
   OpenInNew as OpenInNewIcon,
   Refresh as RefreshIcon
 } from '@mui/icons-material';
-import { MaterialReactTable, useMaterialReactTable } from 'material-react-table';
+import {
+  MaterialReactTable,
+  MRT_ToggleFiltersButton,
+  useMaterialReactTable
+} from 'material-react-table';
 
-const API_BASE_URL = 'http://localhost:5001';
-
-const StyledCard = styled(Card)(({ theme }) => ({
-  background: 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)',
-  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-  borderRadius: '12px',
-  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-  '&:hover': {
-    transform: 'translateY(-4px)',
-  },
-}));
+const API_BASE_URL = 'http://localhost:5000';
 
 const getEndOfDay = (max) => {
   const date = new Date(max);
@@ -86,7 +75,10 @@ function IssuesPage() {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarOpen, setSnackbarOpen] = useState(false);
 
-  const [selectedRow, setSelectedRow] = useState(null);
+  const [rowSelection, setRowSelection] = useState({});
+
+  const [rowsToDelete, setRowsToDelete] = useState([]);
+  const [deleteMode, setDeleteMode] = useState(null); // 'single' | 'multi'
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -191,7 +183,7 @@ function IssuesPage() {
     setIsSaving(true);
 
     try {
-      const { id } = row.original;
+      const id = row.id;
       const { dbms, status } = values;
 
       await axios.put(`${API_BASE_URL}/issue/${id}`, { dbms, status });
@@ -217,35 +209,73 @@ function IssuesPage() {
     }
   };
 
-  const handleOpenDialog = (row) => {
-    setSelectedRow(row);
+  const handleOpenDialog = (rows, mode) => {
+    setRowsToDelete(rows);
+    setDeleteMode(mode);
     setDialogOpen(true);
   };
 
   const handleCloseDialog = () => {
     setDialogOpen(false);
-    setSelectedRow(null);
   };
 
   const handleConfirmDelete = async () => {
     setIsDeleting(true);
 
+    if (deleteMode === 'single') {
+      await handleSingleDelete(rowsToDelete[0]);
+    } else {
+      await handleMultiDelete(rowsToDelete);
+    }
+
+    setIsDeleting(false);
+    setSnackbarOpen(true);
+  }
+
+  const handleSingleDelete = async (row) => {
     try {
-      const { id } = selectedRow.original;
-      await axios.delete(`${API_BASE_URL}/issue/${id}`);
+      const id = row.id;
+      await axios.delete(`${API_BASE_URL}/issues`, { data: { ids: [id] } });
+
+      setRowSelection(prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
 
       setIssues(prevIssues => prevIssues.filter(issue => issue.id !== id));
 
-      handleCloseDialog();
       setIsError(false);
       setSnackbarMessage('Bug report deleted');
+      handleCloseDialog();
     } catch (error) {
       console.error('Error deleting bug report:', error);
       setIsError(true);
       setSnackbarMessage('Failed to delete bug report');
-    } finally {
-      setIsDeleting(false);
-      setSnackbarOpen(true);
+    }
+  };
+
+  const handleMultiDelete = async (rows) => {
+    try {
+      const ids = rows.map(row => row.id);
+      await axios.delete(`${API_BASE_URL}/issues`, { data: { ids } });
+
+      setRowSelection(prev => {
+        const next = { ...prev };
+        ids.forEach(id => delete next[id]);
+        return next;
+      });
+
+      const set = new Set(ids);
+      setIssues(prevIssues => prevIssues.filter(issue => !set.has(issue.id)));
+
+      setIsError(false);
+      setSnackbarMessage(`${label} deleted`);
+      handleCloseDialog();
+    } catch (error) {
+      console.error(`Error deleting ${label}:`, error);
+      setIsError(true);
+      setSnackbarMessage(`Failed to delete ${label}`);
     }
   };
 
@@ -281,15 +311,19 @@ function IssuesPage() {
   const table = useMaterialReactTable({
     columns,
     data: issues,
+    autoResetPageIndex: false,
     enableEditing: true,
     enableFacetedValues: true,
     enableGrouping: true,
     enableRowActions: true,
     enableRowNumbers: true,
+    enableRowSelection: true,
     editDisplayMode: 'row',
     globalFilterFn: 'contains',
     positionActionsColumn: 'last',
+    positionToolbarAlertBanner: 'bottom',
     initialState: {
+      showGlobalFilter: true,
       columnFilters: [
         {
           id: 'status',
@@ -297,7 +331,9 @@ function IssuesPage() {
         },
       ],
     },
+    getRowId: row => row.id,
     onEditingRowSave: handleSaveBugReport,
+    onRowSelectionChange: setRowSelection,
     renderDetailPanel: ({ row }) => (
       <div style={{ padding: '1rem', background: '#f9f9f9' }}>
         <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -307,17 +343,17 @@ function IssuesPage() {
     ),
     renderRowActions: ({ row }) => (
       <Box sx={{ display: 'flex', gap: '1rem' }}>
-        <Tooltip title="Edit">
+        <Tooltip title="Edit issue">
           <IconButton onClick={() => table.setEditingRow(row)}>
             <EditIcon />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Delete">
-          <IconButton color="error" onClick={() => handleOpenDialog(row)}>
+        <Tooltip title="Delete issue">
+          <IconButton color="error" onClick={() => handleOpenDialog([row], 'single')}>
             <DeleteIcon />
           </IconButton>
         </Tooltip>
-        <Tooltip title="View issue">
+        <Tooltip title="View issue on GitHub">
           <IconButton onClick={() => window.open(row.original.html_url, "_blank")}>
             <OpenInNewIcon />
           </IconButton>
@@ -331,9 +367,29 @@ function IssuesPage() {
         </IconButton>
       </Tooltip>
     ),
+    renderToolbarInternalActions: ({ table }) => {
+      const selectedRows = table.getSelectedRowModel().rows;
+
+      return (
+        <Box>
+          <MRT_ToggleFiltersButton table={table}/>
+          <Tooltip title="Delete issues">
+            <span>
+              <IconButton
+                disabled={selectedRows.length === 0}
+                onClick={() => handleOpenDialog(selectedRows, 'multi')}
+              >
+                <DeleteIcon/>
+              </IconButton>
+            </span>
+          </Tooltip>
+        </Box>
+      );
+    },
     state: {
       isLoading,
       isSaving,
+      rowSelection,
       showProgressBars: isRefetching,
     },
   });
@@ -345,47 +401,49 @@ function IssuesPage() {
     setSnackbarOpen(false);
   };
 
-  return (
-    <Box sx={{pb: 3, px: 3, bgcolor: '#f0f4f8', minHeight: '100vh' }}>
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <StyledCard>
-            <CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography variant="h5" fontWeight="bold" color="#1976d2">
-                Issues Found
-              </Typography>
-            </CardContent>
-          </StyledCard>
-        </Grid>
-        <Grid item xs={12}>
-          {isLoading ? (
-            <StyledCard><CardContent><Typography variant="body1" align="center" color="textSecondary">Loading issues...</Typography></CardContent></StyledCard>
-          ) : (
-            <StyledCard>
-              <CardContent>
-                <MaterialReactTable table={table} />
-              </CardContent>
-            </StyledCard>
-          )}
-        </Grid>
-      </Grid>
+  const count = rowsToDelete.length;
+  const label = `${count} bug report${count === 1 ? '' : 's'}`;
 
-      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ bgcolor: '#f44336', color: 'white', mb: 2 }}>Confirm Deletion</DialogTitle>
-        <DialogContent>
-          <Typography variant="body1">Are you sure you want to delete this bug report? This action cannot be undone.</Typography>
-          {selectedRow && <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}><strong>Title:</strong> {selectedRow.original.title}</Typography>}
-        </DialogContent>
+  return (
+    <div className="p-2">
+      <div className="flex justify-between mb-2">
+        <h2 className="font-bold">Issues Found</h2>
+      </div>
+      <MaterialReactTable table={table} />
+
+      <Dialog open={dialogOpen} onClose={handleCloseDialog}>
+        {deleteMode === 'single' ? (
+          <>
+            <DialogTitle>Delete bug report?</DialogTitle>
+            <DialogContent>This bug report will be permanently deleted.</DialogContent>
+          </>
+        ) : (
+          <>
+            <DialogTitle>Delete {label}?</DialogTitle>
+            <DialogContent>{label} will be permanently deleted.</DialogContent>
+          </>
+        )}
         <DialogActions>
-          <Button onClick={handleCloseDialog} disabled={isDeleting} color="primary">Cancel</Button>
-          <Button onClick={handleConfirmDelete} disabled={isDeleting} color="error" variant="contained">{isDeleting ? 'Deleting...' : 'Delete'}</Button>
+          <Button onClick={handleCloseDialog} disabled={isDeleting}>Cancel</Button>
+          <Button onClick={handleConfirmDelete} loading={isDeleting}>OK</Button>
         </DialogActions>
       </Dialog>
 
-      <Snackbar open={snackbarOpen} onClose={handleCloseSnackbar} autoHideDuration={6000} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
-        <Alert onClose={handleCloseSnackbar} severity={isError ? 'error' : 'success'} sx={{ width: '100%' }}>{snackbarMessage}</Alert>
+      <Snackbar
+        open={snackbarOpen}
+        onClose={handleCloseSnackbar}
+        autoHideDuration={5000}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        {isError ? (
+          <Alert severity="error" onClose={handleCloseSnackbar}>
+            {snackbarMessage}
+          </Alert>
+        ) : (
+          <SnackbarContent message={snackbarMessage} />
+        )}
       </Snackbar>
-    </Box>
+    </div>
   );
 }
 

@@ -244,7 +244,7 @@ app.put('/issue/:id', async (req, res) => {
     );
 
     if (result.rowCount) {
-      return res.status(204).send();
+      return res.sendStatus(204);
     }
 
     res.status(404).json({ error: 'Issue not found' });
@@ -254,20 +254,19 @@ app.put('/issue/:id', async (req, res) => {
   }
 });
 
-// Delete an issue given its id
-app.delete('/issue/:id', async (req, res) => {
+app.delete('/issues', async (req, res) => {
   try {
-    const { id } = req.params;
-    const result = await db.pool.query('DELETE FROM cs3213_issues WHERE id = $1', [id]);
+    const { ids } = req.body;
+    const result = await db.pool.query('DELETE FROM cs3213_issues WHERE id = ANY($1)', [ids]);
 
     if (result.rowCount) {
-      return res.status(204).send();
+      return res.sendStatus(204);
     }
 
-    res.status(404).json({ error: 'Issue not found' });
+    res.status(404).json({ error: 'Issue(s) not found' });
   } catch (error) {
-    console.error('Error deleting issue:', error);
-    res.status(500).json({ error: 'Failed to delete issue' });
+    console.error('Error deleting issues:', error);
+    res.status(500).json({ error: 'Failed to delete issues' });
   }
 });
 

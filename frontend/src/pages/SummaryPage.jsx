@@ -56,7 +56,7 @@ function SummaryPage() {
   const [toMonth, setToMonth] = useState(null);
 
   useEffect(() => {
-    axios.get('http://localhost:5001/dbms_summary_data')
+    axios.get('http://localhost:5000/dbms_summary_data')
       .then(response => {
         const formattedData = response.data.map(item => ({
           ...item,
@@ -72,7 +72,7 @@ function SummaryPage() {
 
   // Fetch monthly data
   useEffect(() => {
-    axios.get('http://localhost:5001/dbms_monthly_data')
+    axios.get('http://localhost:5000/dbms_monthly_data')
       .then(response => {
         setDbmsMonthlyData(response.data);
       })
@@ -128,17 +128,9 @@ function SummaryPage() {
     enableGrouping: true,
     enableRowNumbers: true,
     globalFilterFn: 'contains',
-    initialState: {
-      columnFilters: [
-        {
-          id: 'status',
-          value: ['Open', 'Closed', 'Fixed'],
-        },
-      ],
-    },
     state: {
-      isLoading
-    }
+      isLoading,
+    },
   });
 
   const translations = {
@@ -258,106 +250,102 @@ function SummaryPage() {
         </Grid>
 
         <Grid item xs={12}>
-          {isLoading ? (
-            <StyledCard><CardContent><Typography variant="body1" align="center" color="textSecondary">Loading...</Typography></CardContent></StyledCard>
-          ) : (
-            <StyledCard>
-              <CardContent>
-                {viewMode === 'table' && (
-                  <>
-                    <Typography variant="h6" gutterBottom color="#424242">Summary Table</Typography>
-                    <MaterialReactTable table={table} />
-                  </>
-                )}
-                {viewMode === 'bar' && (
-                  <>
-                    <Typography variant="h6" gutterBottom color="#424242">Issues by DBMS (Bar Chart)</Typography>
-                    <BarChart dataset={dbmsSummaryData} series={addLabels([{ dataKey: 'open_count', stack: 'total' }, { dataKey: 'fixed_count', stack: 'total' }])} xAxis={[{ scaleType: 'band', dataKey: 'dbms' }]} slotProps={{ legend: { hidden: true } }} height={400} />
-                  </>
-                )}
-                {viewMode === 'line' && (
-                  <>
-                    <Typography variant="h6" gutterBottom color="#424242">Trend Analysis (Line Chart)</Typography>
-                    <Box sx={{ mb: 3 }}>
-                      <Grid container spacing={2} alignItems="center">
-                        <Grid item xs={12} sm={6} md={3}>
-                          <LocalizationProvider dateAdapter={AdapterDayjs}>
-                            <DatePicker
-                              label="From Month"
-                              views={['year', 'month']}
-                              value={fromMonth}
-                              onChange={setFromMonth}
-                              maxDate={toMonth}
-                              slotProps={{ textField: { size: 'small', fullWidth: true } }}
-                            />
-                          </LocalizationProvider>
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={3}>
-                          <LocalizationProvider dateAdapter={AdapterDayjs}>
-                            <DatePicker
-                              label="To Month"
-                              views={['year', 'month']}
-                              value={toMonth}
-                              onChange={setToMonth}
-                              minDate={fromMonth}
-                              slotProps={{ textField: { size: 'small', fullWidth: true } }}
-                            />
-                          </LocalizationProvider>
-                        </Grid>
-                        <Grid item xs={12} sm={6} md={3}>
-                          <Button
-                            variant="outlined"
-                            color="primary"
-                            startIcon={<ClearIcon />}
-                            onClick={handleResetMonths}
-                            fullWidth
-                            sx={{ height: '40px' }}
-                          >
-                            Reset
-                          </Button>
-                        </Grid>
-                      </Grid>
-                      <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                        {Object.keys(dbmsMonthlyData).map(dbms => (
-                          <StyledChip
-                            key={dbms}
-                            label={dbms}
-                            selected={selectedDBMS.includes(dbms)}
-                            onClick={() => handleDBMSClick(dbms)}
-                            sx={{ backgroundColor: selectedDBMS.includes(dbms) ? getColorForDBMS(dbms) : undefined }}
+          <StyledCard>
+            <CardContent>
+              {viewMode === 'table' && (
+                <>
+                  <Typography variant="h6" gutterBottom color="#424242">Summary Table</Typography>
+                  <MaterialReactTable table={table} />
+                </>
+              )}
+              {viewMode === 'bar' && (
+                <>
+                  <Typography variant="h6" gutterBottom color="#424242">Issues by DBMS (Bar Chart)</Typography>
+                  <BarChart dataset={dbmsSummaryData} series={addLabels([{ dataKey: 'open_count', stack: 'total' }, { dataKey: 'fixed_count', stack: 'total' }])} xAxis={[{ scaleType: 'band', dataKey: 'dbms' }]} slotProps={{ legend: { hidden: true } }} height={400} />
+                </>
+              )}
+              {viewMode === 'line' && (
+                <>
+                  <Typography variant="h6" gutterBottom color="#424242">Trend Analysis (Line Chart)</Typography>
+                  <Box sx={{ mb: 3 }}>
+                    <Grid container spacing={2} alignItems="center">
+                      <Grid item xs={12} sm={6} md={3}>
+                        <LocalizationProvider dateAdapter={AdapterDayjs}>
+                          <DatePicker
+                            label="From Month"
+                            views={['year', 'month']}
+                            value={fromMonth}
+                            onChange={setFromMonth}
+                            maxDate={toMonth}
+                            slotProps={{ textField: { size: 'small', fullWidth: true } }}
                           />
-                        ))}
-                      </Box>
+                        </LocalizationProvider>
+                      </Grid>
+                      <Grid item xs={12} sm={6} md={3}>
+                        <LocalizationProvider dateAdapter={AdapterDayjs}>
+                          <DatePicker
+                            label="To Month"
+                            views={['year', 'month']}
+                            value={toMonth}
+                            onChange={setToMonth}
+                            minDate={fromMonth}
+                            slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                          />
+                        </LocalizationProvider>
+                      </Grid>
+                      <Grid item xs={12} sm={6} md={3}>
+                        <Button
+                          variant="outlined"
+                          color="primary"
+                          startIcon={<ClearIcon />}
+                          onClick={handleResetMonths}
+                          fullWidth
+                          sx={{ height: '40px' }}
+                        >
+                          Reset
+                        </Button>
+                      </Grid>
+                    </Grid>
+                    <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {Object.keys(dbmsMonthlyData).map(dbms => (
+                        <StyledChip
+                          key={dbms}
+                          label={dbms}
+                          selected={selectedDBMS.includes(dbms)}
+                          onClick={() => handleDBMSClick(dbms)}
+                          sx={{ backgroundColor: selectedDBMS.includes(dbms) ? getColorForDBMS(dbms) : undefined }}
+                        />
+                      ))}
                     </Box>
-                    <LineChart
-                      xAxis={[{ 
-                        scaleType: 'point', 
-                        data: lineChartData.months, 
-                        label: 'Month', 
-                        valueFormatter: value => dayjs(value).format('MMM YYYY'), 
-                        tickLabelStyle: { angle: 45, textAnchor: 'start', fontSize: 12 }, 
-                        labelStyle: { fontSize: 14, transform: 'translateY(20px)' } 
-                      }]}
-                      yAxis={[{ 
-                        label: 'Number of Bugs', 
-                        max: Math.ceil(lineChartData.maxValue * 1.1), 
-                        valueFormatter: value => value.toLocaleString() 
-                      }]}
-                      series={lineChartData.series}
-                      height={550}
-                      margin={{ top: 60, right: 140, bottom: 90, left: 70 }}
-                      grid={{ horizontal: true }}
-                      tooltip={{ 
-                        trigger: 'item', 
-                        formatter: ({ series, dataIndex }) => `${series.label}<br>${dayjs(lineChartData.months[dataIndex]).format('MMMM YYYY')}: ${series.data[dataIndex].toLocaleString()} bugs` 
-                      }}
-                      slotProps={{ legend: { position: { vertical: 'top', horizontal: 'right' }, padding: 0, labelStyle: { fontSize: 12 } } }}
-                    />
-                  </>
-                )}
-              </CardContent>
-            </StyledCard>
-          )}
+                  </Box>
+                  <LineChart
+                    xAxis={[{
+                      scaleType: 'point',
+                      data: lineChartData.months,
+                      label: 'Month',
+                      valueFormatter: value => dayjs(value).format('MMM YYYY'),
+                      tickLabelStyle: { angle: 45, textAnchor: 'start', fontSize: 12 },
+                      labelStyle: { fontSize: 14, transform: 'translateY(20px)' }
+                    }]}
+                    yAxis={[{
+                      label: 'Number of Bugs',
+                      max: Math.ceil(lineChartData.maxValue * 1.1),
+                      valueFormatter: value => value.toLocaleString()
+                    }]}
+                    series={lineChartData.series}
+                    height={550}
+                    margin={{ top: 60, right: 140, bottom: 90, left: 70 }}
+                    grid={{ horizontal: true }}
+                    tooltip={{
+                      trigger: 'item',
+                      formatter: ({ series, dataIndex }) => `${series.label}<br>${dayjs(lineChartData.months[dataIndex]).format('MMMM YYYY')}: ${series.data[dataIndex].toLocaleString()} bugs`
+                    }}
+                    slotProps={{ legend: { position: { vertical: 'top', horizontal: 'right' }, padding: 0, labelStyle: { fontSize: 12 } } }}
+                  />
+                </>
+              )}
+            </CardContent>
+          </StyledCard>
         </Grid>
       </Grid>
     </Box>
