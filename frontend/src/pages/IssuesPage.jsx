@@ -3,17 +3,22 @@ import axios from 'axios';
 import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { styled } from '@mui/material/styles';
 import {
   Alert,
   Box,
   Button,
+  Card,
+  CardContent,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  Grid,
   IconButton,
-  Snackbar, SnackbarContent,
-  Tooltip
+  Snackbar,
+  Tooltip,
+  Typography,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -24,6 +29,16 @@ import {
 import { MaterialReactTable, useMaterialReactTable } from 'material-react-table';
 
 const API_BASE_URL = 'http://localhost:5001';
+
+const StyledCard = styled(Card)(({ theme }) => ({
+  background: 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)',
+  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+  borderRadius: '12px',
+  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+  '&:hover': {
+    transform: 'translateY(-4px)',
+  },
+}));
 
 const getEndOfDay = (max) => {
   const date = new Date(max);
@@ -331,36 +346,46 @@ function IssuesPage() {
   };
 
   return (
-    <div className="p-2">
-      <div className="flex justify-between mb-2">
-        <h2 className="font-bold">Issues Found</h2>
-      </div>
-      <MaterialReactTable table={table} />
+    <Box sx={{pb: 3, px: 3, bgcolor: '#f0f4f8', minHeight: '100vh' }}>
+      <Grid container spacing={3}>
+        <Grid item xs={12}>
+          <StyledCard>
+            <CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="h5" fontWeight="bold" color="#1976d2">
+                Issues Found
+              </Typography>
+            </CardContent>
+          </StyledCard>
+        </Grid>
+        <Grid item xs={12}>
+          {isLoading ? (
+            <StyledCard><CardContent><Typography variant="body1" align="center" color="textSecondary">Loading issues...</Typography></CardContent></StyledCard>
+          ) : (
+            <StyledCard>
+              <CardContent>
+                <MaterialReactTable table={table} />
+              </CardContent>
+            </StyledCard>
+          )}
+        </Grid>
+      </Grid>
 
-      <Dialog open={dialogOpen} onClose={handleCloseDialog}>
-        <DialogTitle>Delete bug report?</DialogTitle>
-        <DialogContent>This bug report will be permanently deleted.</DialogContent>
+      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ bgcolor: '#f44336', color: 'white', mb: 2 }}>Confirm Deletion</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1">Are you sure you want to delete this bug report? This action cannot be undone.</Typography>
+          {selectedRow && <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}><strong>Title:</strong> {selectedRow.original.title}</Typography>}
+        </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog} disabled={isDeleting}>Cancel</Button>
-          <Button onClick={handleConfirmDelete} loading={isDeleting}>OK</Button>
+          <Button onClick={handleCloseDialog} disabled={isDeleting} color="primary">Cancel</Button>
+          <Button onClick={handleConfirmDelete} disabled={isDeleting} color="error" variant="contained">{isDeleting ? 'Deleting...' : 'Delete'}</Button>
         </DialogActions>
       </Dialog>
 
-      <Snackbar
-        open={snackbarOpen}
-        onClose={handleCloseSnackbar}
-        autoHideDuration={6000}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        {isError ? (
-          <Alert severity="error" onClose={handleCloseSnackbar}>
-            {snackbarMessage}
-          </Alert>
-        ) : (
-          <SnackbarContent message={snackbarMessage} />
-        )}
+      <Snackbar open={snackbarOpen} onClose={handleCloseSnackbar} autoHideDuration={6000} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
+        <Alert onClose={handleCloseSnackbar} severity={isError ? 'error' : 'success'} sx={{ width: '100%' }}>{snackbarMessage}</Alert>
       </Snackbar>
-    </div>
+    </Box>
   );
 }
 

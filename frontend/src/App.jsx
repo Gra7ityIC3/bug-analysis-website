@@ -10,14 +10,18 @@ import DatabaseSupportedPage from './pages/DatabaseSupportedPage';
 function App() {
   return (
     <BrowserRouter>
-      <Header />
-      <LocalizationProvider dateAdapter={AdapterDayjs}>
-        <Routes>
-          <Route path="/" element={<IssuesPage />} />
-          <Route path="/summary" element={<SummaryPage />} />
-          <Route path="/database-supported" element={<DatabaseSupportedPage />} />
-        </Routes>
-      </LocalizationProvider>
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-grow pt-[100px]">
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <Routes>
+              <Route path="/" element={<IssuesPage />} />
+              <Route path="/summary" element={<SummaryPage />} />
+              <Route path="/database-supported" element={<DatabaseSupportedPage />} />
+            </Routes>
+        </LocalizationProvider>
+        </main>
+      </div>
     </BrowserRouter>
   );
 }
