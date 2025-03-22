@@ -1,3 +1,17 @@
+import { Box, Grid, Typography, Card, CardContent } from '@mui/material';
+import { styled } from '@mui/material/styles';
+
+const StyledCard = styled(Card)(({ theme }) => ({
+  background: 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)',
+  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+  borderRadius: '12px',
+  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+  '&:hover': {
+    transform: 'translateY(-4px)',
+    boxShadow: '0 6px 16px rgba(0, 0, 0, 0.15)',
+  },
+}));
+
 function DatabaseSupportedPage() {
   const databases = [
     { name: "Citus", logo: "https://github.com/citusdata/citus_docs/blob/master/logo.png?raw=true" },
@@ -23,20 +37,44 @@ function DatabaseSupportedPage() {
   ];
 
   return (
-    <div className="p-2">
-      <div className="flex justify-between mb-2">
-        <h2 className="font-bold">Database Supported by SQLancer</h2>
-      </div>
-
-      <div className="grid grid-cols-4 gap-4 p-2">
-        {databases.map((db) => (
-          <div key={db.name} className="flex flex-col items-center p-2 border rounded-lg shadow">
-            <img src={db.logo} alt={`${db.name} logo`} className="h-30 w-42 object-contain mb-2" />
-            <p className="font-semibold">{db.name}</p>
-          </div>
-        ))}
-      </div>
-    </div>
+    <Box sx={{ pb: 3, px: 3, bgcolor: '#f0f4f8', minHeight: '100vh' }}>
+      <Grid container spacing={3}>
+        <Grid item xs={12}>
+          <StyledCard>
+            <CardContent>
+              <Typography variant="h5" fontWeight="bold" color="#1976d2">
+                Databases Supported by SQLancer
+              </Typography>
+            </CardContent>
+          </StyledCard>
+        </Grid>
+        <Grid item xs={12}>
+          <StyledCard>
+            <CardContent>
+              <Grid container spacing={3}>
+                {databases.map((db) => (
+                  <Grid item xs={12} sm={6} md={4} lg={3} key={db.name}>
+                    <StyledCard>
+                      <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 2 }}>
+                        <img
+                          src={db.logo}
+                          alt={`${db.name} logo`}
+                          style={{ maxHeight: '80px', maxWidth: '100%', objectFit: 'contain', marginBottom: '12px' }}
+                          onError={(e) => (e.target.src = 'https://via.placeholder.com/80?text=Logo+Not+Found')} // Fallback for broken images
+                        />
+                        <Typography variant="subtitle1" fontWeight="medium" color="#424242" textAlign="center">
+                          {db.name}
+                        </Typography>
+                      </CardContent>
+                    </StyledCard>
+                  </Grid>
+                ))}
+              </Grid>
+            </CardContent>
+          </StyledCard>
+        </Grid>
+      </Grid>
+    </Box>
   );
 }
 
