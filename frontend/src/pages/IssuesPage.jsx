@@ -3,17 +3,22 @@ import axios from 'axios';
 import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { styled, keyframes} from '@mui/material/styles';
 import {
   Alert,
   Box,
   Button,
+  Card,
+  CardContent,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  Grid,
   IconButton,
   Snackbar, SnackbarContent,
-  Tooltip
+  Tooltip,
+  Typography
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -28,6 +33,40 @@ import {
 } from 'material-react-table';
 
 const API_BASE_URL = 'http://localhost:5000';
+
+const fadeIn = keyframes`
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+`;
+
+const StyledCard = styled(Card)(({ theme }) => ({
+  background: 'linear-gradient(135deg, #ffffff 0%, #eef2f6 100%)',
+  boxShadow: '0 6px 20px rgba(0, 0, 0, 0.08)',
+  borderRadius: '16px',
+  border: '1px solid rgba(0, 0, 0, 0.05)',
+  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+  animation: `${fadeIn} 0.5s ease-out`,
+  '&:hover': {
+    transform: 'translateY(-6px)',
+    boxShadow: '0 12px 30px rgba(0, 0, 0, 0.12)',
+  },
+}));
+
+const StyledDialog = styled(Dialog)(({ theme }) => ({
+  '& .MuiDialog-paper': {
+    background: 'linear-gradient(135deg, #ffffff 0%, #eef2f6 100%)',
+    boxShadow: '0 6px 20px rgba(0, 0, 0, 0.08)',
+    borderRadius: '16px',
+    border: '1px solid rgba(0, 0, 0, 0.05)',
+  },
+}));
+
+const StyledAlert = styled(Alert)(({ theme }) => ({
+  background: 'linear-gradient(135deg, #ffffff 0%, #eef2f6 100%)',
+  boxShadow: '0 6px 20px rgba(0, 0, 0, 0.08)',
+  borderRadius: '12px',
+  color: '#333',
+}));
 
 const getEndOfDay = (max) => {
   const date = new Date(max);
@@ -405,29 +444,80 @@ function IssuesPage() {
   const label = `${count} bug report${count === 1 ? '' : 's'}`;
 
   return (
-    <div className="p-2">
-      <div className="flex justify-between mb-2">
-        <h2 className="font-bold">Issues Found</h2>
-      </div>
-      <MaterialReactTable table={table} />
+    <Box sx={{ pb: 3, px: 3, backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
+      <Grid container spacing={3}>
+        {/* Header */}
+        <Grid item xs={12}>
+          <StyledCard>
+            <CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 2 }}>
+              <Typography
+                variant="h4"
+                fontWeight="700"
+                sx={{ color: '#1e88e5', letterSpacing: '-0.5px' }}
+              >
+                Issues Dashboard
+              </Typography>
+              <Button
+                variant="contained"
+                startIcon={<RefreshIcon />}
+                onClick={handleRefreshIssues}
+                disabled={isRefetching}
+                sx={{
+                  backgroundColor: '#1976d2',
+                  '&:hover': { backgroundColor: '#1565c0' },
+                  borderRadius: '8px',
+                  textTransform: 'none',
+                  px: 3,
+                }}
+              >
+                Refresh
+              </Button>
+            </CardContent>
+          </StyledCard>
+        </Grid>
 
-      <Dialog open={dialogOpen} onClose={handleCloseDialog}>
-        {deleteMode === 'single' ? (
-          <>
-            <DialogTitle>Delete bug report?</DialogTitle>
-            <DialogContent>This bug report will be permanently deleted.</DialogContent>
-          </>
-        ) : (
-          <>
-            <DialogTitle>Delete {label}?</DialogTitle>
-            <DialogContent>{label} will be permanently deleted.</DialogContent>
-          </>
-        )}
-        <DialogActions>
-          <Button onClick={handleCloseDialog} disabled={isDeleting}>Cancel</Button>
-          <Button onClick={handleConfirmDelete} loading={isDeleting}>OK</Button>
+        {/* Table */}
+        <Grid item xs={12}>
+          <StyledCard>
+            <CardContent sx={{ p: 3 }}>
+              <MaterialReactTable table={table} />
+            </CardContent>
+          </StyledCard>
+        </Grid>
+      </Grid>
+
+      <StyledDialog open={dialogOpen} onClose={handleCloseDialog}>
+        <DialogTitle sx={{ fontWeight: 600, color: '#1e88e5' }}>
+          {deleteMode === 'single' ? 'Delete Bug Report?' : `Delete ${label}?`}
+        </DialogTitle>
+        <DialogContent sx={{ color: '#555' }}>
+          {deleteMode === 'single'
+            ? 'This bug report will be permanently deleted.'
+            : `${label} will be permanently deleted.`}
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+        <Button
+            onClick={handleCloseDialog}
+            disabled={isDeleting}
+            sx={{ color: '#757575', textTransform: 'none' }}
+        >
+          Cancel
+        </Button>
+        <Button
+            onClick={handleConfirmDelete}
+            disabled={isDeleting}
+            variant="contained"
+            sx={{
+              backgroundColor: '#d32f2f',
+              '&:hover': { backgroundColor: '#b71c1c' },
+              borderRadius: '8px',
+              textTransform: 'none',
+            }}
+          >
+            {isDeleting ? 'Deleting...' : 'Delete'}
+          </Button>
         </DialogActions>
-      </Dialog>
+      </StyledDialog>
 
       <Snackbar
         open={snackbarOpen}
@@ -436,14 +526,14 @@ function IssuesPage() {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
         {isError ? (
-          <Alert severity="error" onClose={handleCloseSnackbar}>
+          <StyledAlert severity="error" onClose={handleCloseSnackbar}>
             {snackbarMessage}
-          </Alert>
+          </StyledAlert>
         ) : (
           <SnackbarContent message={snackbarMessage} />
         )}
       </Snackbar>
-    </div>
+    </Box>
   );
 }
 
