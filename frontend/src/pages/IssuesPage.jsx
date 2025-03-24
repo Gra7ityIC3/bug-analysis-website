@@ -16,7 +16,8 @@ import {
   DialogTitle,
   Grid,
   IconButton,
-  Snackbar, SnackbarContent,
+  Snackbar,
+  SnackbarContent,
   Tooltip,
   Typography
 } from '@mui/material';
@@ -50,22 +51,6 @@ const StyledCard = styled(Card)(({ theme }) => ({
     transform: 'translateY(-6px)',
     boxShadow: '0 12px 30px rgba(0, 0, 0, 0.12)',
   },
-}));
-
-const StyledDialog = styled(Dialog)(({ theme }) => ({
-  '& .MuiDialog-paper': {
-    background: 'linear-gradient(135deg, #ffffff 0%, #eef2f6 100%)',
-    boxShadow: '0 6px 20px rgba(0, 0, 0, 0.08)',
-    borderRadius: '16px',
-    border: '1px solid rgba(0, 0, 0, 0.05)',
-  },
-}));
-
-const StyledAlert = styled(Alert)(({ theme }) => ({
-  background: 'linear-gradient(135deg, #ffffff 0%, #eef2f6 100%)',
-  boxShadow: '0 6px 20px rgba(0, 0, 0, 0.08)',
-  borderRadius: '12px',
-  color: '#333',
 }));
 
 const getEndOfDay = (max) => {
@@ -269,7 +254,7 @@ function IssuesPage() {
 
     setIsDeleting(false);
     setSnackbarOpen(true);
-  }
+  };
 
   const handleSingleDelete = async (row) => {
     try {
@@ -457,67 +442,33 @@ function IssuesPage() {
               >
                 Issues Dashboard
               </Typography>
-              <Button
-                variant="contained"
-                startIcon={<RefreshIcon />}
-                onClick={handleRefreshIssues}
-                disabled={isRefetching}
-                sx={{
-                  backgroundColor: '#1976d2',
-                  '&:hover': { backgroundColor: '#1565c0' },
-                  borderRadius: '8px',
-                  textTransform: 'none',
-                  px: 3,
-                }}
-              >
-                Refresh
-              </Button>
             </CardContent>
           </StyledCard>
         </Grid>
 
         {/* Table */}
         <Grid item xs={12}>
-          <StyledCard>
-            <CardContent sx={{ p: 3 }}>
-              <MaterialReactTable table={table} />
-            </CardContent>
-          </StyledCard>
+          <MaterialReactTable table={table} />
         </Grid>
       </Grid>
 
-      <StyledDialog open={dialogOpen} onClose={handleCloseDialog}>
-        <DialogTitle sx={{ fontWeight: 600, color: '#1e88e5' }}>
-          {deleteMode === 'single' ? 'Delete Bug Report?' : `Delete ${label}?`}
-        </DialogTitle>
-        <DialogContent sx={{ color: '#555' }}>
-          {deleteMode === 'single'
-            ? 'This bug report will be permanently deleted.'
-            : `${label} will be permanently deleted.`}
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-        <Button
-            onClick={handleCloseDialog}
-            disabled={isDeleting}
-            sx={{ color: '#757575', textTransform: 'none' }}
-        >
-          Cancel
-        </Button>
-        <Button
-            onClick={handleConfirmDelete}
-            disabled={isDeleting}
-            variant="contained"
-            sx={{
-              backgroundColor: '#d32f2f',
-              '&:hover': { backgroundColor: '#b71c1c' },
-              borderRadius: '8px',
-              textTransform: 'none',
-            }}
-          >
-            {isDeleting ? 'Deleting...' : 'Delete'}
-          </Button>
+      <Dialog open={dialogOpen} onClose={handleCloseDialog}>
+        {deleteMode === 'single' ? (
+          <>
+            <DialogTitle>Delete bug report?</DialogTitle>
+            <DialogContent>This bug report will be permanently deleted.</DialogContent>
+          </>
+        ) : (
+          <>
+            <DialogTitle>Delete {label}?</DialogTitle>
+            <DialogContent>{label} will be permanently deleted.</DialogContent>
+          </>
+        )}
+        <DialogActions>
+          <Button onClick={handleCloseDialog} disabled={isDeleting}>Cancel</Button>
+          <Button onClick={handleConfirmDelete} loading={isDeleting}>OK</Button>
         </DialogActions>
-      </StyledDialog>
+      </Dialog>
 
       <Snackbar
         open={snackbarOpen}
@@ -526,9 +477,9 @@ function IssuesPage() {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
         {isError ? (
-          <StyledAlert severity="error" onClose={handleCloseSnackbar}>
+          <Alert severity="error" onClose={handleCloseSnackbar}>
             {snackbarMessage}
-          </StyledAlert>
+          </Alert>
         ) : (
           <SnackbarContent message={snackbarMessage} />
         )}
