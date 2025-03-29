@@ -44,7 +44,7 @@ export const initializeDatabase = async () => {
     await client.query(createIssuesTable);
     await client.query(createMetadataTable);
     await client.query(sqlancerBugs.createSqlancerBugsTable);
-    sqlancerBugs.parseInitialData();
+    await sqlancerBugs.parseInitialData(client);
     await client.query('COMMIT');
 
     console.log('Tables cs3213_issues, cs3213_metadata and cs3213_sqlancer_json_bugs have been created (or already exist).');

@@ -30,8 +30,7 @@ export const createSqlancerBugsTable = `
 `;
 
 // Retrieve data from sqlancer/bugs.json and store them into the database
-export const parseInitialData = async () => {
-    const client = await pool.connect();
+export const parseInitialData = async (client) => {
     const currentRows = await client.query('SELECT * FROM cs3213_sqlancer_json_bugs');
     client.release();
     if (currentRows.rowCount > 0) {
@@ -92,8 +91,6 @@ export const parseInitialData = async () => {
 
   /**
    * Inserts multiple issues into the database using PostgreSQL's `COPY` command
-   * and updates the `latest_updated_at` value in the metadata table to track the
-   * timestamp of the most recently updated issue fetched from GitHub.
    *
    * @param {Array<Object>} issues An array of issue objects to insert into the database.
    * @returns {Promise<Array<Object>>} A promise that resolves to an array of inserted issues
