@@ -23,22 +23,55 @@ app.use(cors());
 db.initializeDatabase();
 
 const BugReport = z.object({
-  dbms: z.string(),
-  status: z.enum(['Open', 'Closed', 'Fixed', 'Not a bug']),
+  dbms: z.enum([
+    'Citus', 'ClickHouse', 'CnosDB', 'CockroachDB', 'Databend', 'DataFusion',
+    'Doris', 'DuckDB', 'H2', 'HSQLDB', 'MariaDB', 'Materialize', 'MySQL',
+    'OceanBase', 'PostgreSQL', 'Presto', 'QuestDB', 'SQLite3', 'TiDB', 'YugabyteDB',
+    'ArangoDB', 'Cosmos', 'MongoDB', 'StoneDB', // Previously supported DBMSs
+    'N/A',
+  ]),
+  // Oracle values obtained from:
+  // https://github.com/sqlancer/bugs/blob/7a1e9edcaa63b04408c96b12777141485da3c714/bugs.py#L38-L44
+  oracle: z.enum([
+    'PQS',
+    'error',
+    'crash',
+    'NoREC',
+    'hang',
+    'TLP (aggregate)',
+    'TLP (HAVING)',
+    'TLP (WHERE)',
+    'TLP (GROUP BY)',
+    'TLP (DISTINCT)',
+    'N/A',
+  ]),
+  status: z.enum(['Open', 'Fixed', 'Closed', 'Not a bug']),
 });
 
-function getPromptAndResponseFormat(issue, comments) {
-  const prompt = `Analyze the following GitHub issue and determine if it is a bug found by SQLancer.
+function getPromptAndResponseFormat(issue, comments, owner, repo) {
+  const prompt = `Your task is to analyze a GitHub issue to determine whether it is a bug found by SQLancer and extract the following fields:
 
-Classify the issue as one of the following:
-- Open: Bug found by SQLancer but not yet fixed.
-- Closed: Issue was closed without a fix.
-- Fixed: Bug found by SQLancer and has been resolved.
-- Not a bug: Issue was not a bug found by SQLancer (e.g., not SQLancer-related, intended behavior, etc.).
+DBMS: Identify the DBMS the issue is associated with based on the repository or issue details.
+This should be one of the DBMSs supported by SQLancer, or "N/A" otherwise.
 
+Oracle: If the issue is a bug found by SQLancer, identify the test oracle used to find the bug. Otherwise, it should be "N/A".
+
+Status: Classify the issue into one of the following statuses:
+
+- Not a bug: The issue is not a bug found by SQLancer (e.g., it is unrelated to SQLancer, expected behavior, or a feature request).
+- Open: The issue is a bug found by SQLancer that has not yet been fixed.
+- Fixed: The issue is a bug found by SQLancer that has been resolved.
+- Closed: The issue is a bug found by SQLancer that was closed without being fixed.
+
+Now, extract the appropriate values based on the following issue:
+
+Repository: ${owner}/${repo}
+State: ${issue.state}${issue.state_reason ? ` (${issue.state_reason})` : ''}
 Title: ${issue.title}
-Description: ${issue.body}
 Labels: ${issue.labels.map(label => label.name).join(', ')}
+
+Description:
+${issue.body}
 
 Comments:
 ${comments.map(comment => comment.body).join('\n\n')}`
@@ -85,7 +118,7 @@ async function fetchGitHubIssues(date = null) {
         issue_number: issue.number,
       });
 
-      const { prompt, responseFormat } = getPromptAndResponseFormat(issue, comments);
+      const { prompt, responseFormat } = getPromptAndResponseFormat(issue, comments, owner, repo);
       const bugReport = await callOpenAIWithStructuredOutput(prompt, responseFormat);
 
       return {
@@ -93,6 +126,7 @@ async function fetchGitHubIssues(date = null) {
         title: issue.title,
         description: issue.body,
         dbms: bugReport.dbms,
+        oracle: bugReport.oracle,
         status: bugReport.status,
         html_url: issue.html_url,
         created_at: issue.created_at,
@@ -103,6 +137,14 @@ async function fetchGitHubIssues(date = null) {
 }
 
 // Routes
+app.get('/dbms', (req, res) => {
+  res.json({ dbms: BugReport.shape.dbms.options });
+});
+
+app.get('/oracles', (req, res) => {
+  res.json({ oracles: BugReport.shape.oracle.options });
+});
+
 app.get('/statuses', (req, res) => {
   res.json({ statuses: BugReport.shape.status.options });
 });
@@ -246,11 +288,11 @@ app.post('/issues/refresh', async (req, res) => {
 app.put('/issue/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { dbms, status } = req.body;
+    const { dbms, oracle, status } = req.body;
 
     const result = await db.pool.query(
-      'UPDATE cs3213_issues SET dbms = $1, status = $2 WHERE id = $3',
-      [dbms, status, id]
+      'UPDATE cs3213_issues SET dbms = $1, oracle = $2, status = $3 WHERE id = $4',
+      [dbms, oracle, status, id]
     );
 
     if (result.rowCount) {

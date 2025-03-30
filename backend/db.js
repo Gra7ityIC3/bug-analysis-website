@@ -21,9 +21,10 @@ export const initializeDatabase = async () => {
         id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
         creator VARCHAR(255) NOT NULL,
         title TEXT NOT NULL,
-        description TEXT,
-        dbms VARCHAR(100),
-        status VARCHAR(20) NOT NULL CHECK (status IN ('Open', 'Closed', 'Fixed', 'Not a bug')),
+        description TEXT, -- Some GitHub issues have no description.
+        dbms VARCHAR(20) NOT NULL,
+        oracle VARCHAR(20) NOT NULL,
+        status VARCHAR(20) NOT NULL,
         html_url TEXT NOT NULL UNIQUE,
         created_at TIMESTAMPTZ NOT NULL,
         updated_at TIMESTAMPTZ NOT NULL
@@ -47,7 +48,10 @@ export const initializeDatabase = async () => {
     await sqlancerBugs.parseInitialData(client);
     await client.query('COMMIT');
 
-    console.log('Tables cs3213_issues, cs3213_metadata and cs3213_sqlancer_json_bugs have been created (or already exist).');
+    console.log('The following tables have been created (or already exists):');
+    console.log('- cs3213_issues');
+    console.log('- cs3213_metadata');
+    console.log('- cs3213_sqlancer_json_bugs');
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Error initializing database:', error);
