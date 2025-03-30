@@ -455,8 +455,8 @@ function IssuesPage() {
       <Dialog open={dialogOpen} onClose={handleCloseDialog}>
         {deleteMode === 'single' ? (
           <>
-            <DialogTitle data-testid="delete-dialog-title">Delete bug report?</DialogTitle>
-            <DialogContent data-testid="delete-dialog-content">This bug report will be permanently deleted.</DialogContent>
+            <DialogTitle>Delete bug report?</DialogTitle>
+            <DialogContent>This bug report will be permanently deleted.</DialogContent>
           </>
         ) : (
           <>
