@@ -121,12 +121,16 @@ app.get('/issues', async (req, res) => {
 app.get('/dbms_summary_data', async (req, res) => {
   try {
     const text = `
+      WITH combined_issues AS (
+        SELECT dbms, status FROM cs3213_issues WHERE dbms NOT IN ('N/A', '')
+        UNION ALL
+        SELECT dbms, status FROM cs3213_sqlancer_json_bugs WHERE dbms NOT IN ('N/A', '')
+      )
       SELECT dbms,
              COUNT(*) FILTER (WHERE status != 'Not a bug') AS total_count,
              COUNT(*) FILTER (WHERE status = 'Open') AS open_count,
              COUNT(*) FILTER (WHERE status = 'Fixed') AS fixed_count
-      FROM cs3213_issues
-      WHERE dbms NOT IN ('N/A', '')
+      FROM combined_issues
       GROUP BY dbms
       ORDER BY dbms ASC;
     `;
@@ -143,25 +147,31 @@ app.get('/dbms_monthly_data', async (req, res) => {
   try {
     // Get the earliest and latest months to fill in gaps
     const rangeQuery = `
+      WITH combined_dates AS (
+        SELECT created_at FROM cs3213_issues WHERE dbms NOT IN ('N/A', '') AND status != 'Not a bug'
+        UNION ALL
+        SELECT created_at FROM cs3213_sqlancer_json_bugs WHERE dbms NOT IN ('N/A', '') AND status != 'Not a bug'
+      )
       SELECT 
         DATE_TRUNC('month', MIN(created_at)) AS start_month,
         DATE_TRUNC('month', MAX(created_at)) AS end_month
-      FROM cs3213_issues
-      WHERE dbms NOT IN ('N/A', '')
-        AND status != 'Not a bug';
+      FROM combined_dates;
     `;
     const rangeResult = await db.pool.query(rangeQuery);
     const { start_month, end_month } = rangeResult.rows[0];
 
     // Get the bug counts
     const dataQuery = `
+      WITH combined_issues AS (
+        SELECT dbms, created_at FROM cs3213_issues WHERE dbms NOT IN ('N/A', '') AND status != 'Not a bug'
+        UNION ALL
+        SELECT dbms, created_at FROM cs3213_sqlancer_json_bugs WHERE dbms NOT IN ('N/A', '') AND status != 'Not a bug'
+      )
       SELECT 
         dbms,
         DATE_TRUNC('month', created_at) AS month,
         COUNT(*) AS total_bugs
-      FROM cs3213_issues
-      WHERE dbms NOT IN ('N/A', '')
-        AND status != 'Not a bug'
+      FROM combined_issues
       GROUP BY dbms, DATE_TRUNC('month', created_at)
       ORDER BY month ASC, dbms ASC;
     `;
@@ -258,6 +268,53 @@ app.delete('/issues', async (req, res) => {
   try {
     const { ids } = req.body;
     const result = await db.pool.query('DELETE FROM cs3213_issues WHERE id = ANY($1)', [ids]);
+
+    if (result.rowCount) {
+      return res.sendStatus(204);
+    }
+
+    res.status(404).json({ error: 'Issue(s) not found' });
+  } catch (error) {
+    console.error('Error deleting issues:', error);
+    res.status(500).json({ error: 'Failed to delete issues' });
+  }
+});
+
+app.get('/sqlancer_json_bugs', async (req, res) => {
+  try {
+    const result = await db.pool.query('SELECT * FROM cs3213_sqlancer_json_bugs ORDER BY created_at DESC');
+    res.json({ issues: result.rows });
+  } catch (error) {
+    console.error('Error fetching issues from database:', error);
+    res.status(500).json({ error: 'Failed to fetch issues from the database.' });
+  }
+});
+
+app.put('/sqlancer_json_bugs/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const result = await db.pool.query(
+      'UPDATE cs3213_sqlancer_json_bugs SET status = $1 WHERE id = $2',
+      [status, id]
+    );
+
+    if (result.rowCount) {
+      return res.sendStatus(204);
+    }
+
+    res.status(404).json({ error: 'Issue not found' });
+  } catch (error) {
+    console.error('Error updating issue:', error);
+    res.status(500).json({ error: 'Failed to update issue' });
+  }
+});
+
+app.delete('/sqlancer_json_bugs', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    const result = await db.pool.query('DELETE FROM cs3213_sqlancer_json_bugs WHERE id = ANY($1)', [ids]);
 
     if (result.rowCount) {
       return res.sendStatus(204);

@@ -3,6 +3,7 @@ import { pipeline } from 'stream/promises';
 import pkg from 'pg';
 import { from as copyFrom } from 'pg-copy-streams';
 import { json2csv } from 'json-2-csv';
+import * as sqlancerBugs from './sqlancer_bugs.js';
 
 const { Pool } = pkg;
 
@@ -42,9 +43,11 @@ export const initializeDatabase = async () => {
     await client.query('BEGIN');
     await client.query(createIssuesTable);
     await client.query(createMetadataTable);
+    await client.query(sqlancerBugs.createSqlancerBugsTable);
+    await sqlancerBugs.parseInitialData(client);
     await client.query('COMMIT');
 
-    console.log('Tables cs3213_issues and cs3213_metadata have been created (or already exist).');
+    console.log('Tables cs3213_issues, cs3213_metadata and cs3213_sqlancer_json_bugs have been created (or already exist).');
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Error initializing database:', error);

@@ -6,6 +6,7 @@ import Header from './general/Header';
 import IssuesPage from './pages/IssuesPage';
 import SummaryPage from './pages/SummaryPage';
 import DatabaseSupportedPage from './pages/DatabaseSupportedPage';
+import SqlancerJsonBugsPage from './pages/SqlancerJsonBugsPage';
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             <Routes>
               <Route path="/" element={<IssuesPage />} />
+              <Route path="/sqlancer_json_bugs" element={<SqlancerJsonBugsPage />} />
               <Route path="/summary" element={<SummaryPage />} />
               <Route path="/database-supported" element={<DatabaseSupportedPage />} />
             </Routes>
