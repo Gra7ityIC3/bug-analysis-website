@@ -25,7 +25,6 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   OpenInNew as OpenInNewIcon,
-  Refresh as RefreshIcon
 } from '@mui/icons-material';
 import {
   MaterialReactTable,
@@ -74,28 +73,12 @@ const DateCell = ({ cell }) => {
   );
 };
 
-const getRefreshSnackbarMessage = (newCount, updatedCount) => {
-  const messages = [];
-
-  if (newCount > 0) {
-    messages.push(`${newCount} new bug report${newCount === 1 ? '' : 's'} added`);
-  }
-  if (updatedCount > 0) {
-    messages.push(`${updatedCount} bug report${updatedCount === 1 ? '' : 's'} updated`);
-  }
-
-  return messages.join(', ') || 'No new or updated bug reports found';
-};
-
-function IssuesPage() {
-  const [issues, setIssues] = useState([]);
-  const [dbmsList, setDbmsList] = useState([]);
-  const [oracles, setOracles] = useState([]);
+function SqlancerBugReportsPage() {
+  const [bugReports, setBugReports] = useState([]);
   const [statuses, setStatuses] = useState([]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isRefetching, setIsRefetching] = useState(false);
 
   const [isError, setIsError] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -109,25 +92,23 @@ function IssuesPage() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
+    axios.get(`${API_BASE_URL}/statuses`)
+      .then(response => setStatuses(response.data.statuses));
+  }, []);
+
+  useEffect(() => {
     const controller = new AbortController();
     const signal = controller.signal;
 
-    const fetchIssues = async () => {
+    const fetchBugReports = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/issues`, { signal });
-        const issues = response.data.issues;
-
-        if (issues.length > 0) {
-          setIssues(issues);
-        } else {
-          const response = await axios.post(`${API_BASE_URL}/issues`, null, { signal });
-          setIssues(response.data.issues);
-        }
+        const response = await axios.get(`${API_BASE_URL}/sqlancer-bug-reports`, { signal });
+        setBugReports(response.data.bugReports);
       } catch (error) {
         if (axios.isCancel(error)) {
-          console.warn('Issue fetch request was aborted:', error.message);
+          console.warn('Bug report fetch request was aborted:', error.message);
         } else {
-          console.error('Error fetching issues:', error);
+          console.error('Error fetching bug reports:', error);
         }
       } finally {
         if (!signal.aborted) {
@@ -136,24 +117,9 @@ function IssuesPage() {
       }
     };
 
-    fetchIssues();
+    fetchBugReports();
 
     return () => controller.abort();
-  }, []);
-
-  useEffect(() => {
-    axios.get(`${API_BASE_URL}/dbms`)
-      .then(response => setDbmsList(response.data.dbms));
-  }, []);
-
-  useEffect(() => {
-    axios.get(`${API_BASE_URL}/oracles`)
-      .then(response => setOracles(response.data.oracles));
-  }, []);
-
-  useEffect(() => {
-    axios.get(`${API_BASE_URL}/statuses`)
-      .then(response => setStatuses(response.data.statuses));
   }, []);
 
   const columns = useMemo(
@@ -161,35 +127,26 @@ function IssuesPage() {
       {
         accessorKey: 'title',
         header: 'Title',
-        filterFn: 'contains',
         enableEditing: false,
         enableGrouping: false,
+        filterFn: 'contains',
         size: 400,
       },
       {
         accessorKey: 'dbms',
         header: 'DBMS',
+        enableEditing: false,
         filterVariant: 'multi-select',
-        editVariant: 'select',
-        editSelectOptions: dbmsList,
         size: 150,
         sortingFn: (rowA, rowB, columnId) => {
-          // If grouped, sort by group size in ascending order.
-          // As DBMS is a string, descending order wouldn't follow the default sort direction (↑).
+          // If grouped, sort by group size in ascending order
+          // As DBMS is a string, descending order wouldn't follow the default sort direction (↑)
           if (rowA.subRows.length && rowB.subRows.length) {
             return rowA.subRows.length - rowB.subRows.length;
           }
-          // Otherwise, sort alphabetically in ascending order.
+          // Otherwise, sort alphabetically in ascending order
           return rowA.getValue(columnId).localeCompare(rowB.getValue(columnId));
         },
-      },
-      {
-        accessorKey: 'oracle',
-        header: 'Test Oracle',
-        filterVariant: 'multi-select',
-        editVariant: 'select',
-        editSelectOptions: oracles,
-        size: 150,
       },
       {
         accessorKey: 'status',
@@ -211,18 +168,21 @@ function IssuesPage() {
         Cell: DateCell,
       },
       {
-        accessorFn: (row) => new Date(row.updated_at),
-        id: 'updated_at',
-        header: 'Last Updated',
+        accessorKey: 'oracle',
+        header: 'Oracle',
         enableEditing: false,
-        enableGrouping: false,
-        filterVariant: 'date-range',
+        filterVariant: 'multi-select',
         size: 150,
-        filterFn: dateFilterFn,
-        Cell: DateCell,
+      },
+      {
+        accessorKey: 'severity',
+        header: 'Severity',
+        enableEditing: false,
+        filterVariant: 'multi-select',
+        size: 150,
       },
     ],
-    [dbmsList, oracles, statuses],
+    [statuses],
   );
 
   const handleSaveBugReport = async ({ table, values, row }) => {
@@ -230,18 +190,16 @@ function IssuesPage() {
 
     try {
       const id = row.id;
-      const { dbms, oracle, status } = values;
+      const { status } = values;
 
-      await axios.put(`${API_BASE_URL}/issue/${id}`, { dbms, oracle, status });
+      await axios.put(`${API_BASE_URL}/sqlancer-bug-reports/${id}`, { status });
 
-      setIssues(prevIssues =>
-        prevIssues.map(issue => {
-          if (issue.id === id) {
-            issue.dbms = dbms;
-            issue.oracle = oracle;
-            issue.status = status;
+      setBugReports(prevBugReports =>
+        prevBugReports.map(bugReport => {
+          if (bugReport.id === id) {
+            bugReport.status = status;
           }
-          return issue;
+          return bugReport;
         })
       );
 
@@ -277,12 +235,12 @@ function IssuesPage() {
 
     setIsDeleting(false);
     setSnackbarOpen(true);
-  };
+  }
 
   const handleSingleDelete = async (row) => {
     try {
       const id = row.id;
-      await axios.delete(`${API_BASE_URL}/issues`, { data: { ids: [id] } });
+      await axios.delete(`${API_BASE_URL}/sqlancer-bug-reports`, { data: { ids: [id] } });
 
       setRowSelection(prev => {
         const next = { ...prev };
@@ -290,7 +248,7 @@ function IssuesPage() {
         return next;
       });
 
-      setIssues(prevIssues => prevIssues.filter(issue => issue.id !== id));
+      setBugReports(prevBugReports => prevBugReports.filter(bugReport => bugReport.id !== id));
 
       setIsError(false);
       setSnackbarMessage('Bug report deleted');
@@ -305,7 +263,7 @@ function IssuesPage() {
   const handleMultiDelete = async (rows) => {
     try {
       const ids = rows.map(row => row.id);
-      await axios.delete(`${API_BASE_URL}/issues`, { data: { ids } });
+      await axios.delete(`${API_BASE_URL}/sqlancer-bug-reports`, { data: { ids } });
 
       setRowSelection(prev => {
         const next = { ...prev };
@@ -314,7 +272,7 @@ function IssuesPage() {
       });
 
       const set = new Set(ids);
-      setIssues(prevIssues => prevIssues.filter(issue => !set.has(issue.id)));
+      setBugReports(prevBugReports => prevBugReports.filter(bugReport => !set.has(bugReport.id)));
 
       setIsError(false);
       setSnackbarMessage(`${label} deleted`);
@@ -326,38 +284,9 @@ function IssuesPage() {
     }
   };
 
-  const handleRefreshIssues = async () => {
-    setIsRefetching(true);
-
-    try {
-      const response = await axios.post(`${API_BASE_URL}/issues/refresh`);
-      const { newIssues, updatedIssues } = response.data;
-
-      const newCount = newIssues.length;
-      const updatedCount = updatedIssues.length;
-
-      if (newCount > 0 || updatedCount > 0) {
-        setIssues(prevIssues => {
-          const map = new Map(updatedIssues.map(issue => [issue.id, issue]));
-          return [...newIssues, ...prevIssues.map(issue => map.get(issue.id) ?? issue)]
-        });
-      }
-
-      setIsError(false);
-      setSnackbarMessage(getRefreshSnackbarMessage(newCount, updatedCount));
-    } catch (error) {
-      console.error('Error refreshing issues:', error);
-      setIsError(true);
-      setSnackbarMessage('Failed to refresh issues');
-    } finally {
-      setIsRefetching(false);
-      setSnackbarOpen(true);
-    }
-  };
-
   const table = useMaterialReactTable({
     columns,
-    data: issues,
+    data: bugReports,
     autoResetPageIndex: false,
     enableEditing: true,
     enableFacetedValues: true,
@@ -384,35 +313,28 @@ function IssuesPage() {
     renderDetailPanel: ({ row }) => (
       <div style={{ padding: '1rem', background: '#f9f9f9' }}>
         <ReactMarkdown remarkPlugins={[remarkGfm]}>
-          {row.original.description || 'No description provided.'}
+          {row.original.test || 'No test provided.'}
         </ReactMarkdown>
       </div>
     ),
     renderRowActions: ({ row }) => (
       <Box sx={{ display: 'flex', gap: '1rem' }}>
-        <Tooltip title="Edit issue">
+        <Tooltip title="Edit bug report">
           <IconButton onClick={() => table.setEditingRow(row)}>
             <EditIcon />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Delete issue">
+        <Tooltip title="Delete bug report">
           <IconButton color="error" onClick={() => handleOpenDialog([row], 'single')}>
             <DeleteIcon />
           </IconButton>
         </Tooltip>
-        <Tooltip title="View issue on GitHub">
-          <IconButton onClick={() => window.open(row.original.html_url, "_blank")}>
+        <Tooltip title="View bug report">
+          <IconButton onClick={() => window.open(row.original.url_fixed || row.original.url_bugtracker, "_blank")}>
             <OpenInNewIcon />
           </IconButton>
         </Tooltip>
       </Box>
-    ),
-    renderTopToolbarCustomActions: () => (
-      <Tooltip arrow title="Refresh issues">
-        <IconButton onClick={handleRefreshIssues} loading={isRefetching}>
-          <RefreshIcon />
-        </IconButton>
-      </Tooltip>
     ),
     renderToolbarInternalActions: ({ table }) => {
       const selectedRows = table.getSelectedRowModel().rows;
@@ -420,7 +342,7 @@ function IssuesPage() {
       return (
         <Box>
           <MRT_ToggleFiltersButton table={table}/>
-          <Tooltip title="Delete issues">
+          <Tooltip title="Delete bug reports">
             <span>
               <IconButton
                 disabled={selectedRows.length === 0}
@@ -437,7 +359,6 @@ function IssuesPage() {
       isLoading,
       isSaving,
       rowSelection,
-      showProgressBars: isRefetching,
     },
   });
 
@@ -463,7 +384,7 @@ function IssuesPage() {
                 fontWeight="700"
                 sx={{ color: '#1e88e5', letterSpacing: '-0.5px' }}
               >
-                Issues Dashboard
+                SQLancer Bug Reports Dashboard
               </Typography>
             </CardContent>
           </StyledCard>
@@ -511,4 +432,4 @@ function IssuesPage() {
   );
 }
 
-export default IssuesPage;
+export default SqlancerBugReportsPage;

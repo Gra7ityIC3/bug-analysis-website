@@ -1,40 +1,22 @@
 /**
- *  This page loads in bugs recorded in the bugs.json file of sqlancers github repository
- *  The last time this file in the repo was updated was 25 Jan 2024 over a year ago,
- *  hence for now no need for refresh/update functions
+ * Loads bug reports from the `bugs.json` file in the sqlancer/bugs GitHub repository.
+ * The file was last updated on 25 Jan 2024 and has not been updated since.
+ * Therefore, no refresh logic is needed for now.
+ *
+ * @see https://github.com/sqlancer/bugs/blob/master/bugs.json
  */
-import { Readable } from 'stream';
-import { pipeline } from 'stream/promises';
 import { Octokit } from '@octokit/rest';
-import { json2csv } from 'json-2-csv';
 import { parse } from 'date-fns';
-import { from as copyFrom } from 'pg-copy-streams';
+import { insertIssuesUsingCopy, SQLANCER_BUG_REPORTS_TABLE } from './db.js';
 
 const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
-export const createSqlancerBugsTable = `
-    CREATE TABLE IF NOT EXISTS cs3213_sqlancer_json_bugs (
-        id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-        title TEXT,
-        dbms VARCHAR(100),
-        oracle VARCHAR(20),
-        status VARCHAR(20) NOT NULL CHECK (status IN ('Open', 'Closed', 'Fixed', 'Not a bug')),
-        created_at TIMESTAMPTZ,
-        test TEXT,
-        severity VARCHAR(20),
-        url_email TEXT,
-        url_bugtracker TEXT,
-        url_fix TEXT,
-        reporter VARCHAR(255)
-    );
-`;
-
 // Retrieve data from sqlancer/bugs.json and store them into the database
 export const parseInitialData = async (client) => {
-  const currentRows = await client.query('SELECT * FROM cs3213_sqlancer_json_bugs');
+  const currentRows = await client.query(`SELECT * FROM ${SQLANCER_BUG_REPORTS_TABLE}`);
 
-  if (currentRows.rowCount > 0) {
-    console.log("cs3213_sqlancer_json_bugs is already loaded with data");
+  if (currentRows.rowCount) {
+    console.log(`Data already exists in ${SQLANCER_BUG_REPORTS_TABLE}. Skipping fetch from GitHub.`);
     return;
   }
 
@@ -89,19 +71,9 @@ export const parseInitialData = async (client) => {
       });
     }
 
-    await insertIssuesUsingCopy(client, newIssues);
-    console.log(`Inserted ${newIssues.length} new bugs into cs3213_sqlancer_json_bugs using COPY.`);
+    await insertIssuesUsingCopy(client, newIssues, SQLANCER_BUG_REPORTS_TABLE);
+    console.log(`Inserted ${newIssues.length} SQLancer bug reports into ${SQLANCER_BUG_REPORTS_TABLE} using COPY.`);
   } catch (error) {
-    console.error('Error fetching or inserting SQLancer JSON bugs:', error);
+    console.error('Error fetching or inserting SQLancer bug reports:', error);
   }
-};
-
-const insertIssuesUsingCopy = async (client, issues) => {
-    const columns = Object.keys(issues[0]);
-    const ingestStream = client.query(
-      copyFrom(`COPY cs3213_sqlancer_json_bugs (${columns.join(', ')}) FROM STDIN WITH CSV`)
-    );
-    const sourceStream = Readable.from(json2csv(issues, { prependHeader: false }));
-  
-    await pipeline(sourceStream, ingestStream);
 };

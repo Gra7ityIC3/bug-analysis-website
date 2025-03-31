@@ -3,22 +3,29 @@ import axios from 'axios';
 import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { styled, keyframes} from '@mui/material/styles';
 import {
   Alert,
   Box,
   Button,
+  Card,
+  CardContent,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  Grid,
   IconButton,
-  Snackbar, SnackbarContent,
-  Tooltip
+  Snackbar,
+  SnackbarContent,
+  Tooltip,
+  Typography
 } from '@mui/material';
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   OpenInNew as OpenInNewIcon,
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
 import {
   MaterialReactTable,
@@ -27,6 +34,24 @@ import {
 } from 'material-react-table';
 
 const API_BASE_URL = 'http://localhost:5000';
+
+const fadeIn = keyframes`
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+`;
+
+const StyledCard = styled(Card)(({ theme }) => ({
+  background: 'linear-gradient(135deg, #ffffff 0%, #eef2f6 100%)',
+  boxShadow: '0 6px 20px rgba(0, 0, 0, 0.08)',
+  borderRadius: '16px',
+  border: '1px solid rgba(0, 0, 0, 0.05)',
+  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+  animation: `${fadeIn} 0.5s ease-out`,
+  '&:hover': {
+    transform: 'translateY(-6px)',
+    boxShadow: '0 12px 30px rgba(0, 0, 0, 0.12)',
+  },
+}));
 
 const getEndOfDay = (max) => {
   const date = new Date(max);
@@ -49,8 +74,23 @@ const DateCell = ({ cell }) => {
   );
 };
 
-function SqlancerJsonBugsPage() {
+const getRefreshSnackbarMessage = (newCount, updatedCount) => {
+  const messages = [];
+
+  if (newCount > 0) {
+    messages.push(`${newCount} new bug report${newCount === 1 ? '' : 's'} added`);
+  }
+  if (updatedCount > 0) {
+    messages.push(`${updatedCount} bug report${updatedCount === 1 ? '' : 's'} updated`);
+  }
+
+  return messages.join(', ') || 'No new or updated bug reports found';
+};
+
+function GitHubIssuesPage() {
   const [issues, setIssues] = useState([]);
+  const [dbmsList, setDbmsList] = useState([]);
+  const [oracles, setOracles] = useState([]);
   const [statuses, setStatuses] = useState([]);
 
   const [isLoading, setIsLoading] = useState(true);
@@ -69,19 +109,20 @@ function SqlancerJsonBugsPage() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    axios.get(`${API_BASE_URL}/statuses`)
-      .then(response => setStatuses(response.data.statuses));
-  }, []);
-
-  useEffect(() => {
     const controller = new AbortController();
     const signal = controller.signal;
 
     const fetchIssues = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/sqlancer_json_bugs`, { signal });
+        const response = await axios.get(`${API_BASE_URL}/issues`, { signal });
         const issues = response.data.issues;
-        setIssues(issues);
+
+        if (issues.length > 0) {
+          setIssues(issues);
+        } else {
+          const response = await axios.post(`${API_BASE_URL}/issues`, null, { signal });
+          setIssues(response.data.issues);
+        }
       } catch (error) {
         if (axios.isCancel(error)) {
           console.warn('Issue fetch request was aborted:', error.message);
@@ -100,31 +141,55 @@ function SqlancerJsonBugsPage() {
     return () => controller.abort();
   }, []);
 
+  useEffect(() => {
+    axios.get(`${API_BASE_URL}/dbms`)
+      .then(response => setDbmsList(response.data.dbms));
+  }, []);
+
+  useEffect(() => {
+    axios.get(`${API_BASE_URL}/oracles`)
+      .then(response => setOracles(response.data.oracles));
+  }, []);
+
+  useEffect(() => {
+    axios.get(`${API_BASE_URL}/statuses`)
+      .then(response => setStatuses(response.data.statuses));
+  }, []);
+
   const columns = useMemo(
     () => [
       {
         accessorKey: 'title',
         header: 'Title',
+        filterFn: 'contains',
         enableEditing: false,
         enableGrouping: false,
-        filterFn: 'contains',
         size: 400,
       },
       {
         accessorKey: 'dbms',
         header: 'DBMS',
-        enableEditing: false,
         filterVariant: 'multi-select',
+        editVariant: 'select',
+        editSelectOptions: dbmsList,
         size: 150,
         sortingFn: (rowA, rowB, columnId) => {
-          // If grouped, sort by group size in ascending order
-          // As DBMS is a string, descending order wouldn't follow the default sort direction (↑)
+          // If grouped, sort by group size in ascending order.
+          // As DBMS is a string, descending order wouldn't follow the default sort direction (↑).
           if (rowA.subRows.length && rowB.subRows.length) {
             return rowA.subRows.length - rowB.subRows.length;
           }
-          // Otherwise, sort alphabetically in ascending order
+          // Otherwise, sort alphabetically in ascending order.
           return rowA.getValue(columnId).localeCompare(rowB.getValue(columnId));
         },
+      },
+      {
+        accessorKey: 'oracle',
+        header: 'Test Oracle',
+        filterVariant: 'multi-select',
+        editVariant: 'select',
+        editSelectOptions: oracles,
+        size: 150,
       },
       {
         accessorKey: 'status',
@@ -146,21 +211,18 @@ function SqlancerJsonBugsPage() {
         Cell: DateCell,
       },
       {
-        accessorKey: 'oracle',
-        header: 'Oracle',
+        accessorFn: (row) => new Date(row.updated_at),
+        id: 'updated_at',
+        header: 'Last Updated',
         enableEditing: false,
-        filterVariant: 'multi-select',
+        enableGrouping: false,
+        filterVariant: 'date-range',
         size: 150,
-      },
-      {
-        accessorKey: 'severity',
-        header: 'Severity',
-        enableEditing: false,
-        filterVariant: 'multi-select',
-        size: 150,
+        filterFn: dateFilterFn,
+        Cell: DateCell,
       },
     ],
-    [statuses],
+    [dbmsList, oracles, statuses],
   );
 
   const handleSaveBugReport = async ({ table, values, row }) => {
@@ -168,13 +230,15 @@ function SqlancerJsonBugsPage() {
 
     try {
       const id = row.id;
-      const { status } = values;
+      const { dbms, oracle, status } = values;
 
-      await axios.put(`${API_BASE_URL}/sqlancer_json_bugs/${id}`, { status });
+      await axios.put(`${API_BASE_URL}/issue/${id}`, { dbms, oracle, status });
 
       setIssues(prevIssues =>
         prevIssues.map(issue => {
           if (issue.id === id) {
+            issue.dbms = dbms;
+            issue.oracle = oracle;
             issue.status = status;
           }
           return issue;
@@ -213,12 +277,12 @@ function SqlancerJsonBugsPage() {
 
     setIsDeleting(false);
     setSnackbarOpen(true);
-  }
+  };
 
   const handleSingleDelete = async (row) => {
     try {
       const id = row.id;
-      await axios.delete(`${API_BASE_URL}/sqlancer_json_bugs`, { data: { ids: [id] } });
+      await axios.delete(`${API_BASE_URL}/issues`, { data: { ids: [id] } });
 
       setRowSelection(prev => {
         const next = { ...prev };
@@ -241,7 +305,7 @@ function SqlancerJsonBugsPage() {
   const handleMultiDelete = async (rows) => {
     try {
       const ids = rows.map(row => row.id);
-      await axios.delete(`${API_BASE_URL}/sqlancer_json_bugs`, { data: { ids } });
+      await axios.delete(`${API_BASE_URL}/issues`, { data: { ids } });
 
       setRowSelection(prev => {
         const next = { ...prev };
@@ -259,6 +323,35 @@ function SqlancerJsonBugsPage() {
       console.error(`Error deleting ${label}:`, error);
       setIsError(true);
       setSnackbarMessage(`Failed to delete ${label}`);
+    }
+  };
+
+  const handleRefreshIssues = async () => {
+    setIsRefetching(true);
+
+    try {
+      const response = await axios.post(`${API_BASE_URL}/issues/refresh`);
+      const { newIssues, updatedIssues } = response.data;
+
+      const newCount = newIssues.length;
+      const updatedCount = updatedIssues.length;
+
+      if (newCount > 0 || updatedCount > 0) {
+        setIssues(prevIssues => {
+          const map = new Map(updatedIssues.map(issue => [issue.id, issue]));
+          return [...newIssues, ...prevIssues.map(issue => map.get(issue.id) ?? issue)]
+        });
+      }
+
+      setIsError(false);
+      setSnackbarMessage(getRefreshSnackbarMessage(newCount, updatedCount));
+    } catch (error) {
+      console.error('Error refreshing issues:', error);
+      setIsError(true);
+      setSnackbarMessage('Failed to refresh issues');
+    } finally {
+      setIsRefetching(false);
+      setSnackbarOpen(true);
     }
   };
 
@@ -291,7 +384,7 @@ function SqlancerJsonBugsPage() {
     renderDetailPanel: ({ row }) => (
       <div style={{ padding: '1rem', background: '#f9f9f9' }}>
         <ReactMarkdown remarkPlugins={[remarkGfm]}>
-          {row.original.test || 'No test provided.'}
+          {row.original.description || 'No description provided.'}
         </ReactMarkdown>
       </div>
     ),
@@ -307,12 +400,19 @@ function SqlancerJsonBugsPage() {
             <DeleteIcon />
           </IconButton>
         </Tooltip>
-        <Tooltip title="View bug report">
-          <IconButton onClick={() => window.open(row.original.url_fixed || row.original.url_bugtracker, "_blank")}>
+        <Tooltip title="View issue on GitHub">
+          <IconButton onClick={() => window.open(row.original.html_url, "_blank")}>
             <OpenInNewIcon />
           </IconButton>
         </Tooltip>
       </Box>
+    ),
+    renderTopToolbarCustomActions: () => (
+      <Tooltip arrow title="Refresh issues">
+        <IconButton onClick={handleRefreshIssues} loading={isRefetching}>
+          <RefreshIcon />
+        </IconButton>
+      </Tooltip>
     ),
     renderToolbarInternalActions: ({ table }) => {
       const selectedRows = table.getSelectedRowModel().rows;
@@ -352,11 +452,28 @@ function SqlancerJsonBugsPage() {
   const label = `${count} bug report${count === 1 ? '' : 's'}`;
 
   return (
-    <div className="p-2">
-      <div className="flex justify-between mb-2">
-        <h2 className="font-bold">Issues Found</h2>
-      </div>
-      <MaterialReactTable table={table} />
+    <Box sx={{ pb: 3, px: 3, backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
+      <Grid container spacing={3}>
+        {/* Header */}
+        <Grid item xs={12}>
+          <StyledCard>
+            <CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 2 }}>
+              <Typography
+                variant="h4"
+                fontWeight="700"
+                sx={{ color: '#1e88e5', letterSpacing: '-0.5px' }}
+              >
+                GitHub Issues Dashboard
+              </Typography>
+            </CardContent>
+          </StyledCard>
+        </Grid>
+
+        {/* Table */}
+        <Grid item xs={12}>
+          <MaterialReactTable table={table} />
+        </Grid>
+      </Grid>
 
       <Dialog open={dialogOpen} onClose={handleCloseDialog}>
         {deleteMode === 'single' ? (
@@ -390,8 +507,8 @@ function SqlancerJsonBugsPage() {
           <SnackbarContent message={snackbarMessage} />
         )}
       </Snackbar>
-    </div>
+    </Box>
   );
 }
 
-export default SqlancerJsonBugsPage;
+export default GitHubIssuesPage;
