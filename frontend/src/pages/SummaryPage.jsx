@@ -56,7 +56,7 @@ function SummaryPage() {
   const [toMonth, setToMonth] = useState(null);
 
   useEffect(() => {
-    axios.get('http://localhost:5000/dbms_summary_data')
+    axios.get('http://localhost:5000/dbms-summary-data')
       .then(response => {
         const formattedData = response.data.map(item => ({
           ...item,
@@ -72,7 +72,7 @@ function SummaryPage() {
 
   // Fetch monthly data
   useEffect(() => {
-    axios.get('http://localhost:5000/dbms_monthly_data')
+    axios.get('http://localhost:5000/dbms-monthly-data')
       .then(response => {
         setDbmsMonthlyData(response.data);
       })
@@ -238,7 +238,7 @@ function SummaryPage() {
           <StyledCard>
             <CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography variant="h5" fontWeight="bold" color="#1976d2">
-                Database Summary Dashboard
+                DBMS Bug Summary Dashboard
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Tooltip title="Table View"><IconButton onClick={() => setViewMode('table')} sx={{ color: viewMode === 'table' ? '#1976d2' : 'gray' }}><TableChartOutlinedIcon /></IconButton></Tooltip>

@@ -59,9 +59,10 @@ function Header() {
   const location = useLocation(); // For active link highlighting
 
   const navItems = [
-    { label: 'Found Bugs', path: '/', icon: <BugReportIcon /> },
+    { label: 'GitHub Issues', path: '/', icon: <BugReportIcon /> },
+    { label: 'SQLancer Bug Reports', path: '/sqlancer-bug-reports', icon: <BugReportIcon /> },
     { label: 'Summary Statistics', path: '/summary', icon: <BarChartIcon /> },
-    { label: 'Database Supported', path: '/database-supported', icon: <StorageIcon /> },
+    { label: 'Supported DBMSs', path: '/supported-dbms', icon: <StorageIcon /> },
   ];
 
   const handleDrawerToggle = () => {
