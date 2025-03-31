@@ -87,8 +87,10 @@ const getRefreshSnackbarMessage = (newCount, updatedCount) => {
   return messages.join(', ') || 'No new or updated bug reports found';
 };
 
-function IssuesPage() {
+function GitHubIssuesPage() {
   const [issues, setIssues] = useState([]);
+  const [dbmsList, setDbmsList] = useState([]);
+  const [oracles, setOracles] = useState([]);
   const [statuses, setStatuses] = useState([]);
 
   const [isLoading, setIsLoading] = useState(true);
@@ -105,11 +107,6 @@ function IssuesPage() {
   const [deleteMode, setDeleteMode] = useState(null); // 'single' | 'multi'
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  useEffect(() => {
-    axios.get(`${API_BASE_URL}/statuses`)
-      .then(response => setStatuses(response.data.statuses));
-  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -144,30 +141,55 @@ function IssuesPage() {
     return () => controller.abort();
   }, []);
 
+  useEffect(() => {
+    axios.get(`${API_BASE_URL}/dbms`)
+      .then(response => setDbmsList(response.data.dbms));
+  }, []);
+
+  useEffect(() => {
+    axios.get(`${API_BASE_URL}/oracles`)
+      .then(response => setOracles(response.data.oracles));
+  }, []);
+
+  useEffect(() => {
+    axios.get(`${API_BASE_URL}/statuses`)
+      .then(response => setStatuses(response.data.statuses));
+  }, []);
+
   const columns = useMemo(
     () => [
       {
         accessorKey: 'title',
         header: 'Title',
+        filterFn: 'contains',
         enableEditing: false,
         enableGrouping: false,
-        filterFn: 'contains',
         size: 400,
       },
       {
         accessorKey: 'dbms',
         header: 'DBMS',
         filterVariant: 'multi-select',
+        editVariant: 'select',
+        editSelectOptions: dbmsList,
         size: 150,
         sortingFn: (rowA, rowB, columnId) => {
-          // If grouped, sort by group size in ascending order
-          // As DBMS is a string, descending order wouldn't follow the default sort direction (↑)
+          // If grouped, sort by group size in ascending order.
+          // As DBMS is a string, descending order wouldn't follow the default sort direction (↑).
           if (rowA.subRows.length && rowB.subRows.length) {
             return rowA.subRows.length - rowB.subRows.length;
           }
-          // Otherwise, sort alphabetically in ascending order
+          // Otherwise, sort alphabetically in ascending order.
           return rowA.getValue(columnId).localeCompare(rowB.getValue(columnId));
         },
+      },
+      {
+        accessorKey: 'oracle',
+        header: 'Test Oracle',
+        filterVariant: 'multi-select',
+        editVariant: 'select',
+        editSelectOptions: oracles,
+        size: 150,
       },
       {
         accessorKey: 'status',
@@ -200,7 +222,7 @@ function IssuesPage() {
         Cell: DateCell,
       },
     ],
-    [statuses],
+    [dbmsList, oracles, statuses],
   );
 
   const handleSaveBugReport = async ({ table, values, row }) => {
@@ -208,14 +230,15 @@ function IssuesPage() {
 
     try {
       const id = row.id;
-      const { dbms, status } = values;
+      const { dbms, oracle, status } = values;
 
-      await axios.put(`${API_BASE_URL}/issue/${id}`, { dbms, status });
+      await axios.put(`${API_BASE_URL}/issue/${id}`, { dbms, oracle, status });
 
       setIssues(prevIssues =>
         prevIssues.map(issue => {
           if (issue.id === id) {
             issue.dbms = dbms;
+            issue.oracle = oracle;
             issue.status = status;
           }
           return issue;
@@ -440,7 +463,7 @@ function IssuesPage() {
                 fontWeight="700"
                 sx={{ color: '#1e88e5', letterSpacing: '-0.5px' }}
               >
-                Issues Dashboard
+                GitHub Issues Dashboard
               </Typography>
             </CardContent>
           </StyledCard>
@@ -488,4 +511,4 @@ function IssuesPage() {
   );
 }
 
-export default IssuesPage;
+export default GitHubIssuesPage;

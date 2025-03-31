@@ -3,10 +3,10 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import './App.css';
 import Header from './general/Header';
-import IssuesPage from './pages/IssuesPage';
+import GitHubIssuesPage from './pages/GitHubIssuesPage.jsx';
+import SqlancerBugReportsPage from './pages/SqlancerBugReportsPage.jsx';
 import SummaryPage from './pages/SummaryPage';
-import DatabaseSupportedPage from './pages/DatabaseSupportedPage';
-import SqlancerJsonBugsPage from './pages/SqlancerJsonBugsPage';
+import SupportedDbmsPage from './pages/SupportedDbmsPage.jsx';
 
 function App() {
   return (
@@ -16,10 +16,10 @@ function App() {
         <main className="flex-grow pt-[100px]">
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             <Routes>
-              <Route path="/" element={<IssuesPage />} />
-              <Route path="/sqlancer_json_bugs" element={<SqlancerJsonBugsPage />} />
+              <Route path="/" element={<GitHubIssuesPage />} />
+              <Route path="/sqlancer-bug-reports" element={<SqlancerBugReportsPage />} />
               <Route path="/summary" element={<SummaryPage />} />
-              <Route path="/database-supported" element={<DatabaseSupportedPage />} />
+              <Route path="/supported-dbms" element={<SupportedDbmsPage />} />
             </Routes>
         </LocalizationProvider>
         </main>

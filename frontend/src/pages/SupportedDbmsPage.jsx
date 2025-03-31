@@ -12,7 +12,7 @@ const StyledCard = styled(Card)(({ theme }) => ({
   },
 }));
 
-function DatabaseSupportedPage() {
+function SupportedDbmsPage() {
   const databases = [
     { name: "Citus", logo: "https://github.com/citusdata/citus_docs/blob/master/logo.png?raw=true" },
     { name: "ClickHouse", logo: "https://github.com/ClickHouse/clickhouse-docs/assets/9611008/4ef9c104-2d3f-4646-b186-507358d2fe28" },
@@ -43,7 +43,7 @@ function DatabaseSupportedPage() {
           <StyledCard>
             <CardContent>
               <Typography variant="h5" fontWeight="bold" color="#1976d2">
-                Databases Supported by SQLancer
+                DBMSs Supported by SQLancer
               </Typography>
             </CardContent>
           </StyledCard>
@@ -78,4 +78,4 @@ function DatabaseSupportedPage() {
   );
 }
 
-export default DatabaseSupportedPage;
+export default SupportedDbmsPage;

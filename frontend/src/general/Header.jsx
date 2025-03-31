@@ -60,9 +60,9 @@ function Header() {
 
   const navItems = [
     { label: 'GitHub Issues', path: '/', icon: <BugReportIcon /> },
-    { label: 'SQLancer Reported Bugs', path: '/sqlancer_json_bugs', icon: <BugReportIcon /> },
+    { label: 'SQLancer Bug Reports', path: '/sqlancer-bug-reports', icon: <BugReportIcon /> },
     { label: 'Summary Statistics', path: '/summary', icon: <BarChartIcon /> },
-    { label: 'Database Supported', path: '/database-supported', icon: <StorageIcon /> },
+    { label: 'Supported DBMSs', path: '/supported-dbms', icon: <StorageIcon /> },
   ];
 
   const handleDrawerToggle = () => {

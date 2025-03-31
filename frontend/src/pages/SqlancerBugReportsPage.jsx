@@ -3,17 +3,23 @@ import axios from 'axios';
 import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { styled, keyframes} from '@mui/material/styles';
 import {
   Alert,
   Box,
   Button,
+  Card,
+  CardContent,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  Grid,
   IconButton,
-  Snackbar, SnackbarContent,
-  Tooltip
+  Snackbar,
+  SnackbarContent,
+  Tooltip,
+  Typography
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -27,6 +33,24 @@ import {
 } from 'material-react-table';
 
 const API_BASE_URL = 'http://localhost:5000';
+
+const fadeIn = keyframes`
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+`;
+
+const StyledCard = styled(Card)(({ theme }) => ({
+  background: 'linear-gradient(135deg, #ffffff 0%, #eef2f6 100%)',
+  boxShadow: '0 6px 20px rgba(0, 0, 0, 0.08)',
+  borderRadius: '16px',
+  border: '1px solid rgba(0, 0, 0, 0.05)',
+  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+  animation: `${fadeIn} 0.5s ease-out`,
+  '&:hover': {
+    transform: 'translateY(-6px)',
+    boxShadow: '0 12px 30px rgba(0, 0, 0, 0.12)',
+  },
+}));
 
 const getEndOfDay = (max) => {
   const date = new Date(max);
@@ -49,13 +73,12 @@ const DateCell = ({ cell }) => {
   );
 };
 
-function SqlancerJsonBugsPage() {
-  const [issues, setIssues] = useState([]);
+function SqlancerBugReportsPage() {
+  const [bugReports, setBugReports] = useState([]);
   const [statuses, setStatuses] = useState([]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isRefetching, setIsRefetching] = useState(false);
 
   const [isError, setIsError] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -77,16 +100,15 @@ function SqlancerJsonBugsPage() {
     const controller = new AbortController();
     const signal = controller.signal;
 
-    const fetchIssues = async () => {
+    const fetchBugReports = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/sqlancer_json_bugs`, { signal });
-        const issues = response.data.issues;
-        setIssues(issues);
+        const response = await axios.get(`${API_BASE_URL}/sqlancer-bug-reports`, { signal });
+        setBugReports(response.data.bugReports);
       } catch (error) {
         if (axios.isCancel(error)) {
-          console.warn('Issue fetch request was aborted:', error.message);
+          console.warn('Bug report fetch request was aborted:', error.message);
         } else {
-          console.error('Error fetching issues:', error);
+          console.error('Error fetching bug reports:', error);
         }
       } finally {
         if (!signal.aborted) {
@@ -95,7 +117,7 @@ function SqlancerJsonBugsPage() {
       }
     };
 
-    fetchIssues();
+    fetchBugReports();
 
     return () => controller.abort();
   }, []);
@@ -170,14 +192,14 @@ function SqlancerJsonBugsPage() {
       const id = row.id;
       const { status } = values;
 
-      await axios.put(`${API_BASE_URL}/sqlancer_json_bugs/${id}`, { status });
+      await axios.put(`${API_BASE_URL}/sqlancer-bug-reports/${id}`, { status });
 
-      setIssues(prevIssues =>
-        prevIssues.map(issue => {
-          if (issue.id === id) {
-            issue.status = status;
+      setBugReports(prevBugReports =>
+        prevBugReports.map(bugReport => {
+          if (bugReport.id === id) {
+            bugReport.status = status;
           }
-          return issue;
+          return bugReport;
         })
       );
 
@@ -218,7 +240,7 @@ function SqlancerJsonBugsPage() {
   const handleSingleDelete = async (row) => {
     try {
       const id = row.id;
-      await axios.delete(`${API_BASE_URL}/sqlancer_json_bugs`, { data: { ids: [id] } });
+      await axios.delete(`${API_BASE_URL}/sqlancer-bug-reports`, { data: { ids: [id] } });
 
       setRowSelection(prev => {
         const next = { ...prev };
@@ -226,7 +248,7 @@ function SqlancerJsonBugsPage() {
         return next;
       });
 
-      setIssues(prevIssues => prevIssues.filter(issue => issue.id !== id));
+      setBugReports(prevBugReports => prevBugReports.filter(bugReport => bugReport.id !== id));
 
       setIsError(false);
       setSnackbarMessage('Bug report deleted');
@@ -241,7 +263,7 @@ function SqlancerJsonBugsPage() {
   const handleMultiDelete = async (rows) => {
     try {
       const ids = rows.map(row => row.id);
-      await axios.delete(`${API_BASE_URL}/sqlancer_json_bugs`, { data: { ids } });
+      await axios.delete(`${API_BASE_URL}/sqlancer-bug-reports`, { data: { ids } });
 
       setRowSelection(prev => {
         const next = { ...prev };
@@ -250,7 +272,7 @@ function SqlancerJsonBugsPage() {
       });
 
       const set = new Set(ids);
-      setIssues(prevIssues => prevIssues.filter(issue => !set.has(issue.id)));
+      setBugReports(prevBugReports => prevBugReports.filter(bugReport => !set.has(bugReport.id)));
 
       setIsError(false);
       setSnackbarMessage(`${label} deleted`);
@@ -264,7 +286,7 @@ function SqlancerJsonBugsPage() {
 
   const table = useMaterialReactTable({
     columns,
-    data: issues,
+    data: bugReports,
     autoResetPageIndex: false,
     enableEditing: true,
     enableFacetedValues: true,
@@ -297,12 +319,12 @@ function SqlancerJsonBugsPage() {
     ),
     renderRowActions: ({ row }) => (
       <Box sx={{ display: 'flex', gap: '1rem' }}>
-        <Tooltip title="Edit issue">
+        <Tooltip title="Edit bug report">
           <IconButton onClick={() => table.setEditingRow(row)}>
             <EditIcon />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Delete issue">
+        <Tooltip title="Delete bug report">
           <IconButton color="error" onClick={() => handleOpenDialog([row], 'single')}>
             <DeleteIcon />
           </IconButton>
@@ -320,7 +342,7 @@ function SqlancerJsonBugsPage() {
       return (
         <Box>
           <MRT_ToggleFiltersButton table={table}/>
-          <Tooltip title="Delete issues">
+          <Tooltip title="Delete bug reports">
             <span>
               <IconButton
                 disabled={selectedRows.length === 0}
@@ -337,7 +359,6 @@ function SqlancerJsonBugsPage() {
       isLoading,
       isSaving,
       rowSelection,
-      showProgressBars: isRefetching,
     },
   });
 
@@ -352,11 +373,28 @@ function SqlancerJsonBugsPage() {
   const label = `${count} bug report${count === 1 ? '' : 's'}`;
 
   return (
-    <div className="p-2">
-      <div className="flex justify-between mb-2">
-        <h2 className="font-bold">Issues Found</h2>
-      </div>
-      <MaterialReactTable table={table} />
+    <Box sx={{ pb: 3, px: 3, backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
+      <Grid container spacing={3}>
+        {/* Header */}
+        <Grid item xs={12}>
+          <StyledCard>
+            <CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 2 }}>
+              <Typography
+                variant="h4"
+                fontWeight="700"
+                sx={{ color: '#1e88e5', letterSpacing: '-0.5px' }}
+              >
+                SQLancer Bug Reports Dashboard
+              </Typography>
+            </CardContent>
+          </StyledCard>
+        </Grid>
+
+        {/* Table */}
+        <Grid item xs={12}>
+          <MaterialReactTable table={table} />
+        </Grid>
+      </Grid>
 
       <Dialog open={dialogOpen} onClose={handleCloseDialog}>
         {deleteMode === 'single' ? (
@@ -390,8 +428,8 @@ function SqlancerJsonBugsPage() {
           <SnackbarContent message={snackbarMessage} />
         )}
       </Snackbar>
-    </div>
+    </Box>
   );
 }
 
-export default SqlancerJsonBugsPage;
+export default SqlancerBugReportsPage;
