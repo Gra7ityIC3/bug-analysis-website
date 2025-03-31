@@ -261,7 +261,7 @@ function SummaryPage() {
               {viewMode === 'bar' && (
                 <>
                   <Typography variant="h6" gutterBottom color="#424242">Issues by DBMS (Bar Chart)</Typography>
-                  <BarChart dataset={dbmsSummaryData} series={addLabels([{ dataKey: 'open_count', stack: 'total' }, { dataKey: 'fixed_count', stack: 'total' }])} xAxis={[{ scaleType: 'band', dataKey: 'dbms' }]} slotProps={{ legend: { hidden: true } }} height={400} />
+                  <BarChart data-testid="bar_chart" dataset={dbmsSummaryData} series={addLabels([{ dataKey: 'open_count', stack: 'total' }, { dataKey: 'fixed_count', stack: 'total' }])} xAxis={[{ scaleType: 'band', dataKey: 'dbms' }]} slotProps={{ legend: { hidden: true } }} height={400} />
                 </>
               )}
               {viewMode === 'line' && (
@@ -319,6 +319,7 @@ function SummaryPage() {
                     </Box>
                   </Box>
                   <LineChart
+                    data-testid="line_chart"
                     xAxis={[{
                       scaleType: 'point',
                       data: lineChartData.months,
