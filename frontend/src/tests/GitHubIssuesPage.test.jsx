@@ -42,9 +42,9 @@ const mockIssues = {
 
 beforeEach(() => {
   // Mock data
-  mock.onGet('http://localhost:5000/dbms').reply(200, { mockDbms });
-  mock.onGet('http://localhost:5000/oracles').reply(200, { mockOracles });
-  mock.onGet('http://localhost:5000/statuses').reply(200, mockStatuses);
+  mock.onGet('http://localhost:5000/dbms').reply(200, { dbms: mockDbms });
+  mock.onGet('http://localhost:5000/oracles').reply(200, { oracles: mockOracles });
+  mock.onGet('http://localhost:5000/statuses').reply(200, { statuses: mockStatuses });
   mock.onGet('http://localhost:5000/issues').reply(200, mockIssues);
 });
 

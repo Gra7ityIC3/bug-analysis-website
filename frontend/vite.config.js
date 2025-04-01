@@ -15,7 +15,8 @@ export default defineConfig({
     setupFiles: './vitest-setup.js',
     exclude: [...configDefaults.exclude, 'dist/**'],
     coverage: {
-      reporter: ['text', 'html']
+      all: false,
+      reporter: ['text', 'html'],
     }
-  }
+  },
 })
