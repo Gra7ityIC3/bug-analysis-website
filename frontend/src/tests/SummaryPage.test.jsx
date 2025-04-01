@@ -1,14 +1,13 @@
 // Test cases for SummaryPage.jsx
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import SummaryPage from '../pages/SummaryPage';
-import MockAdapter from 'axios-mock-adapter';
 import axios from 'axios';
+import MockAdapter from 'axios-mock-adapter';
+import SummaryPage from '../pages/SummaryPage';
 
 // Create a mock instance of axios
 const mock = new MockAdapter(axios);
 
-// Mock response for dbms_summary_data
+// Mock response for dbms-summary-data
 const mockSummaryData = [
   { dbms: 'MySQL', open_count: 100, fixed_count: 40, total_count: 140 },
   { dbms: 'PostgreSQL', open_count: 5, fixed_count: 15, total_count: 20 }
@@ -27,11 +26,10 @@ const mockMonthlyData = {
   ]
 };
 
-
 beforeEach(() => {
   // Mock data
-  mock.onGet('http://localhost:5000/dbms_summary_data').reply(200, mockSummaryData);
-  mock.onGet('http://localhost:5000/dbms_monthly_data').reply(200, mockMonthlyData);
+  mock.onGet('http://localhost:5000/dbms-summary-data').reply(200, mockSummaryData);
+  mock.onGet('http://localhost:5000/dbms-monthly-data').reply(200, mockMonthlyData);
 });
 
 afterEach(() => {
