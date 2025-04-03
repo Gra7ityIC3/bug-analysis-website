@@ -3,13 +3,15 @@ import { pipeline } from 'stream/promises';
 import pkg from 'pg';
 import { from as copyFrom } from 'pg-copy-streams';
 import { json2csv } from 'json-2-csv';
-import { parseInitialData } from './sqlancer-bug-reports.js';
+import { fetchAllGitHubIssues } from './services/github-issues.js';
+import { fetchSqlancerBugReports } from './services/sqlancer-bug-reports.js';
+import { classifyGitHubIssues } from './services/classify-github-issues.js';
 
 const { Pool } = pkg;
 
-export const GITHUB_ISSUES_TABLE = 'cs3213_github_issues';
-export const SQLANCER_BUG_REPORTS_TABLE = 'cs3213_sqlancer_bug_reports';
-export const METADATA_TABLE = 'cs3213_metadata';
+const GITHUB_ISSUES_TABLE = 'cs3213_github_issues';
+const SQLANCER_BUG_REPORTS_TABLE = 'cs3213_sqlancer_bug_reports';
+const METADATA_TABLE = 'cs3213_metadata';
 
 // Create a connection pool
 const pool = new Pool({
@@ -19,7 +21,7 @@ const pool = new Pool({
   },
 });
 
-export const initializeDatabase = async () => {
+export async function initializeDatabase() {
   const createGitHubIssuesTable = `
     CREATE TABLE IF NOT EXISTS ${GITHUB_ISSUES_TABLE} (
       id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -42,20 +44,22 @@ export const initializeDatabase = async () => {
     )
   `;
 
+  // Table schema based on:
+  // https://github.com/sqlancer/bugs/blob/7a1e9edcaa63b04408c96b12777141485da3c714/bugs.py#L23-L57
   const createSqlancerBugReportsTable = `
     CREATE TABLE IF NOT EXISTS ${SQLANCER_BUG_REPORTS_TABLE} (
       id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-      title TEXT,
-      dbms VARCHAR(100),
-      oracle VARCHAR(20),
-      status VARCHAR(20) NOT NULL CHECK (status IN ('Open', 'Fixed', 'Closed', 'Not a bug')),
-      created_at TIMESTAMPTZ,
+      title TEXT NOT NULL,
+      dbms VARCHAR(100) NOT NULL,
+      oracle VARCHAR(20) NOT NULL,
+      status VARCHAR(20) NOT NULL,
+      created_at DATE NOT NULL,
       test TEXT,
       severity VARCHAR(20),
       url_email TEXT,
       url_bugtracker TEXT,
       url_fix TEXT,
-      reporter VARCHAR(255)
+      reporter VARCHAR(255) NOT NULL
     );
   `;
 
@@ -66,7 +70,8 @@ export const initializeDatabase = async () => {
     await client.query(createGitHubIssuesTable);
     await client.query(createMetadataTable);
     await client.query(createSqlancerBugReportsTable);
-    await parseInitialData(client);
+    await insertGitHubIssuesIfEmpty(client);
+    await insertSqlancerBugReportsIfEmpty(client);
     await client.query('COMMIT');
 
     console.log('The following tables have been created (or already exist):');
@@ -79,49 +84,40 @@ export const initializeDatabase = async () => {
   } finally {
     client.release();
   }
-};
+}
 
-/**
- * Inserts multiple issues into the database using PostgreSQL's `COPY` command
- * and updates the `latest_updated_at` value in the metadata table to track the
- * timestamp of the most recently updated issue fetched from GitHub.
- *
- * @param {Array<Object>} issues An array of issue objects to insert into the database.
- * @returns {Promise<Array<Object>>} A promise that resolves to an array of inserted issues
- * from the database or an empty array if no issues were provided.
- *
- * @throws {Error} Throws an error if the `COPY` command or metadata update fails.
- *
- * @note `COPY` is optimized for **bulk insertions**, which incur significantly less overhead
- *       compared to multiple `INSERT` statements and even the multirow `VALUES` syntax.
- */
-export const saveIssuesUsingCopy = async (issues) => {
-  if (!issues.length) return [];
+async function insertGitHubIssuesIfEmpty(client) {
+  const result = await client.query(`SELECT 1 FROM ${GITHUB_ISSUES_TABLE} LIMIT 1`);
 
-  const client = await pool.connect();
-
-  try {
-    await client.query('BEGIN');
-
-    await insertIssuesUsingCopy(client, issues, GITHUB_ISSUES_TABLE);
-    console.log(`Inserted ${issues.length} new GitHub issues into ${GITHUB_ISSUES_TABLE} using COPY.`);
-
-    // Issues are sorted in descending order of updated_at from GitHub.
-    await updateMetadata(client, 'latest_updated_at', issues[0].updated_at);
-    await client.query('COMMIT');
-
-    const result = await client.query(`SELECT * FROM ${GITHUB_ISSUES_TABLE} ORDER BY created_at DESC`);
-    return result.rows;
-  } catch (error) {
-    await client.query('ROLLBACK');
-    console.error('Error inserting issues using COPY:', error);
-    throw error;
-  } finally {
-    client.release();
+  if (result.rowCount) {
+    console.log(`Data already exists in ${GITHUB_ISSUES_TABLE}. Skipping fetch from GitHub.`);
+    return;
   }
-};
 
-export const insertIssuesUsingCopy = async (client, issues, tableName) => {
+  let issues = await fetchAllGitHubIssues();
+  issues = await classifyGitHubIssues(issues);
+
+  await insertIssuesUsingCopy(client, issues, GITHUB_ISSUES_TABLE);
+  console.log(`Inserted ${issues.length} new GitHub issues into ${GITHUB_ISSUES_TABLE} using COPY.`);
+
+  // Issues are sorted in descending order of updated_at from GitHub.
+  await updateMetadata(client, 'latest_updated_at', issues[0].updated_at);
+}
+
+async function insertSqlancerBugReportsIfEmpty(client) {
+  const result = await client.query(`SELECT 1 FROM ${SQLANCER_BUG_REPORTS_TABLE} LIMIT 1`);
+
+  if (result.rowCount) {
+    console.log(`Data already exists in ${SQLANCER_BUG_REPORTS_TABLE}. Skipping fetch from GitHub.`);
+    return;
+  }
+
+  const issues = await fetchSqlancerBugReports();
+  await insertIssuesUsingCopy(client, issues, SQLANCER_BUG_REPORTS_TABLE);
+  console.log(`Inserted ${issues.length} SQLancer bug reports into ${SQLANCER_BUG_REPORTS_TABLE} using COPY.`);
+}
+
+async function insertIssuesUsingCopy(client, issues, tableName) {
   const columns = Object.keys(issues[0]);
   const ingestStream = client.query(
     copyFrom(`COPY ${tableName} (${columns.join(', ')}) FROM STDIN WITH CSV`)
@@ -129,18 +125,19 @@ export const insertIssuesUsingCopy = async (client, issues, tableName) => {
   const sourceStream = Readable.from(json2csv(issues, { prependHeader: false }));
 
   await pipeline(sourceStream, ingestStream);
-};
+}
 
 /**
- * Processes and saves issues into the database by updating existing ones and inserting new
- * ones, using {@link filterAndUpdateIssues} to determine whether an issue is new or updated.
+ * Processes and saves GitHub issues into the GitHub issues table by updating existing
+ * records and inserting new ones, using {@link filterAndUpdateGitHubIssues} to determine
+ * which issues are new or updated.
  *
  * Also updates the `latest_updated_at` value in the metadata table to track the timestamp
- * of the most recently updated issue fetched from GitHub.
+ * of the most recently updated GitHub issue.
  *
  * @param {Array<Object>} issues An array of issue objects to process and save into the database.
  * @param {string} latestUpdatedAt The `latest_updated_at` value in the metadata table,
- * used to determine whether an issue is new or updated.
+ * used to determine which issues are new or updated.
  *
  * @returns {Promise<{ newIssues: Array<Object>, updatedIssues: Array<Object> }>} A promise
  * that resolves to an object containing arrays of newly inserted and updated issues.
@@ -148,7 +145,7 @@ export const insertIssuesUsingCopy = async (client, issues, tableName) => {
  * @throws {Error} Throws an error if updating existing issues, inserting new issues,
  * or updating metadata fails.
  */
-export const processAndSaveIssues = async (issues, latestUpdatedAt) => {
+export async function processAndSaveGitHubIssues(issues, latestUpdatedAt) {
   if (!issues.length) {
     return { newIssues: [], updatedIssues: [] };
   }
@@ -158,7 +155,7 @@ export const processAndSaveIssues = async (issues, latestUpdatedAt) => {
   try {
     await client.query('BEGIN');
 
-    let { newIssues, updatedIssues } = await filterAndUpdateIssues(client, issues, latestUpdatedAt);
+    let { newIssues, updatedIssues } = await filterAndUpdateGitHubIssues(client, issues, latestUpdatedAt);
 
     if (newIssues.length > 0) {
       const query = buildInsertQuery(newIssues);
@@ -178,9 +175,9 @@ export const processAndSaveIssues = async (issues, latestUpdatedAt) => {
   } finally {
     client.release();
   }
-};
+}
 
-const filterAndUpdateIssues = async (client, issues, latestUpdatedAt) => {
+async function filterAndUpdateGitHubIssues(client, issues, latestUpdatedAt) {
   const newIssues = [];
   const updatedIssues = [];
 
@@ -209,25 +206,25 @@ const filterAndUpdateIssues = async (client, issues, latestUpdatedAt) => {
   }
 
   return { newIssues, updatedIssues };
-};
+}
 
-export const getMetadata = async (key) => {
+export async function getMetadata(key) {
   const result = await pool.query(
     `SELECT value FROM ${METADATA_TABLE} WHERE key = $1`, [key]
   );
 
   return result.rows[0].value;
-};
+}
 
-export const getAllGitHubIssues = async () => {
+export async function getAllGitHubIssues() {
   const result = await pool.query(
     `SELECT * FROM ${GITHUB_ISSUES_TABLE} ORDER BY created_at DESC`
   );
 
   return result.rows;
-};
+}
 
-export const updateGitHubIssue = async (id, { dbms, oracle, status }) => {
+export async function updateGitHubIssue(id, { dbms, oracle, status }) {
   const result = await pool.query(
     `UPDATE ${GITHUB_ISSUES_TABLE}
      SET dbms = $1, oracle = $2, status = $3
@@ -236,25 +233,25 @@ export const updateGitHubIssue = async (id, { dbms, oracle, status }) => {
   );
 
   return result.rowCount;
-};
+}
 
-export const deleteGitHubIssues = async (ids) => {
+export async function deleteGitHubIssues(ids) {
   const result = await pool.query(
     `DELETE FROM ${GITHUB_ISSUES_TABLE} WHERE id = ANY($1)`, [ids]
   );
 
   return result.rowCount;
-};
+}
 
-export const getSqlancerBugReports = async () => {
+export async function getSqlancerBugReports() {
   const result = await pool.query(
     `SELECT * FROM ${SQLANCER_BUG_REPORTS_TABLE} ORDER BY created_at DESC`
   );
 
   return result.rows;
-};
+}
 
-export const updateSqlancerBugReport = async (id, { status }) => {
+export async function updateSqlancerBugReport(id, { status }) {
   const result = await pool.query(
     `UPDATE ${SQLANCER_BUG_REPORTS_TABLE}
      SET status = $1
@@ -263,17 +260,17 @@ export const updateSqlancerBugReport = async (id, { status }) => {
   );
 
   return result.rowCount;
-};
+}
 
-export const deleteSqlancerBugReports = async (ids) => {
+export async function deleteSqlancerBugReports(ids) {
   const result = await pool.query(
     `DELETE FROM ${SQLANCER_BUG_REPORTS_TABLE} WHERE id = ANY($1)`, [ids]
   );
 
   return result.rowCount;
-};
+}
 
-export const getDbmsSummaryData = async () => {
+export async function getDbmsSummaryData() {
   const summaryQuery = `
     WITH combined_issues AS (
       SELECT dbms, status FROM ${GITHUB_ISSUES_TABLE} WHERE dbms != 'N/A'
@@ -292,9 +289,9 @@ export const getDbmsSummaryData = async () => {
 
   const result = await pool.query(summaryQuery);
   return result.rows;
-};
+}
 
-export const getDbmsMonthRange = async () => {
+export async function getDbmsMonthRange() {
   const rangeQuery = `
     WITH combined_dates AS (
       SELECT created_at FROM ${GITHUB_ISSUES_TABLE}
@@ -311,9 +308,9 @@ export const getDbmsMonthRange = async () => {
 
   const result = await pool.query(rangeQuery);
   return result.rows[0];
-};
+}
 
-export const getDbmsMonthlyCounts = async () => {
+export async function getDbmsMonthlyCounts() {
   const monthlyCountsQuery = `
     WITH combined_issues AS (
       SELECT dbms, created_at FROM ${GITHUB_ISSUES_TABLE}
@@ -333,20 +330,22 @@ export const getDbmsMonthlyCounts = async () => {
 
   const result = await pool.query(monthlyCountsQuery);
   return result.rows;
-};
+}
 
-// --- Helper functions ---
+// ------------------------------
+// Helper functions
+// ------------------------------
 
-const updateMetadata = async (client, key, value) => {
+async function updateMetadata(client, key, value) {
   await client.query(
     `INSERT INTO ${METADATA_TABLE} (key, value) 
      VALUES ($1, $2)
      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
     [key, value]
   );
-};
+}
 
-const buildInsertQuery = (issues) => {
+function buildInsertQuery(issues) {
   const columns = Object.keys(issues[0]);
   const n = columns.length;
 
@@ -367,4 +366,4 @@ const buildInsertQuery = (issues) => {
   const values = issues.flatMap(issue => Object.values(issue));
 
   return { text, values };
-};
+}

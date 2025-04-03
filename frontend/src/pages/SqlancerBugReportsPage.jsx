@@ -127,58 +127,58 @@ function SqlancerBugReportsPage() {
       {
         accessorKey: 'title',
         header: 'Title',
+        filterFn: 'contains',
         enableEditing: false,
         enableGrouping: false,
-        filterFn: 'contains',
         size: 400,
       },
       {
         accessorKey: 'dbms',
         header: 'DBMS',
-        enableEditing: false,
         filterVariant: 'multi-select',
+        enableEditing: false,
         size: 150,
         sortingFn: (rowA, rowB, columnId) => {
-          // If grouped, sort by group size in ascending order
-          // As DBMS is a string, descending order wouldn't follow the default sort direction (↑)
+          // If grouped, sort by group size in ascending order.
+          // As DBMS is a string, descending order wouldn't follow the default sort direction (↑).
           if (rowA.subRows.length && rowB.subRows.length) {
             return rowA.subRows.length - rowB.subRows.length;
           }
-          // Otherwise, sort alphabetically in ascending order
+          // Otherwise, sort alphabetically in ascending order.
           return rowA.getValue(columnId).localeCompare(rowB.getValue(columnId));
         },
       },
       {
+        accessorKey: 'oracle',
+        header: 'Test Oracle',
+        filterVariant: 'multi-select',
+        enableEditing: false,
+        size: 150,
+      },
+      {
         accessorKey: 'status',
         header: 'Status',
+        filterVariant: 'multi-select',
         editVariant: 'select',
         editSelectOptions: statuses,
-        filterVariant: 'multi-select',
         size: 150,
       },
       {
         accessorFn: (row) => new Date(row.created_at),
         id: 'created_at',
         header: 'Date Posted',
+        filterVariant: 'date-range',
         enableEditing: false,
         enableGrouping: false,
-        filterVariant: 'date-range',
         size: 150,
         filterFn: dateFilterFn,
         Cell: DateCell,
       },
       {
-        accessorKey: 'oracle',
-        header: 'Oracle',
-        enableEditing: false,
-        filterVariant: 'multi-select',
-        size: 150,
-      },
-      {
         accessorKey: 'severity',
         header: 'Severity',
-        enableEditing: false,
         filterVariant: 'multi-select',
+        enableEditing: false,
         size: 150,
       },
     ],
@@ -303,7 +303,7 @@ function SqlancerBugReportsPage() {
       columnFilters: [
         {
           id: 'status',
-          value: ['Open', 'Closed', 'Fixed'],
+          value: ['Open', 'Fixed'],
         },
       ],
     },

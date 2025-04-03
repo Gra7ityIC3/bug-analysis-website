@@ -2,14 +2,9 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import * as db from './db.js';
-import { Octokit } from '@octokit/rest';
-
-import OpenAI from 'openai';
-import { zodResponseFormat } from 'openai/helpers/zod';
-import { z } from 'zod';
-
-const openai = new OpenAI();
-const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+import { BugReport } from './schemas/bug-report-schema.js';
+import { fetchUpdatedGitHubIssues } from './services/github-issues.js';
+import { classifyGitHubIssues } from './services/classify-github-issues.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -21,142 +16,6 @@ app.use(express.json());
 app.use(cors());
 
 db.initializeDatabase();
-
-const BugReport = z.object({
-  dbms: z.enum([
-    'Citus', 'ClickHouse', 'CnosDB', 'CockroachDB', 'Databend', 'DataFusion',
-    'Doris', 'DuckDB', 'H2', 'HSQLDB', 'MariaDB', 'Materialize', 'MySQL',
-    'OceanBase', 'PostgreSQL', 'Presto', 'QuestDB', 'SQLite3', 'TiDB', 'YugabyteDB',
-    'ArangoDB', 'Cosmos', 'MongoDB', 'StoneDB', // Previously supported DBMSs
-    'N/A',
-  ]),
-  // Oracle values obtained from:
-  // https://github.com/sqlancer/bugs/blob/7a1e9edcaa63b04408c96b12777141485da3c714/bugs.py#L38-L44
-  oracle: z.enum([
-    'PQS',
-    'error',
-    'crash',
-    'NoREC',
-    'hang',
-    'TLP (aggregate)',
-    'TLP (HAVING)',
-    'TLP (WHERE)',
-    'TLP (GROUP BY)',
-    'TLP (DISTINCT)',
-    'N/A',
-  ]),
-  status: z.enum(['Open', 'Fixed', 'Closed', 'Not a bug']),
-});
-
-function getPromptAndResponseFormat(issue, comments, owner, repo) {
-  const prompt = `Your task is to analyze a GitHub issue to determine whether it is a bug found by SQLancer and extract the following fields:
-
-DBMS: Identify the DBMS the issue is associated with based on the repository or issue details.
-This should be one of the DBMSs supported by SQLancer, or "N/A" otherwise.
-
-Oracle: If the issue is a bug found by SQLancer, identify the test oracle used to find the bug. Otherwise, it should be "N/A".
-
-Status: Classify the issue into one of the following statuses:
-
-- Not a bug: The issue is not a bug found by SQLancer (e.g., it is unrelated to SQLancer, expected behavior, or a feature request).
-- Open: The issue is a bug found by SQLancer that has not yet been fixed.
-- Fixed: The issue is a bug found by SQLancer that has been resolved.
-- Closed: The issue is a bug found by SQLancer that was closed without being fixed.
-
-Now, extract the appropriate values based on the following issue:
-
-Repository: ${owner}/${repo}
-State: ${issue.state}${issue.state_reason ? ` (${issue.state_reason})` : ''}
-Title: ${issue.title}
-Labels: ${issue.labels.map(label => label.name).join(', ')}
-
-Description:
-${issue.body}
-
-Comments:
-${comments.map(comment => comment.body).join('\n\n')}`
-
-  return { prompt, responseFormat: zodResponseFormat(BugReport, 'bug_report') };
-}
-
-async function callOpenAIWithStructuredOutput(content, responseFormat) {
-  const completion = await openai.beta.chat.completions.parse({
-    model: 'gpt-4o-mini', // GPT-4o would exceed the TPM limit even at tier 3.
-    temperature: 0.2, // Lower values make responses more focused and deterministic.
-    messages: [
-      {
-        role: 'system',
-        content: 'You are an AI assistant specialized in analyzing GitHub issues for bugs found by SQLancer.'
-      },
-      { role: 'user', content: content },
-    ],
-    response_format: responseFormat
-  });
-
-  return completion.choices[0].message.parsed;
-}
-
-async function fetchPaginatedGitHubIssues(query) {
-  return await octokit.paginate(octokit.rest.search.issuesAndPullRequests, {
-    q: query,
-    sort: 'updated',
-    order: 'desc',
-    per_page: 100,
-  });
-}
-
-async function fetchAllGitHubIssues() {
-  const allIssues = [];
-  let lastUpdatedAt = null;
-
-  while (true) {
-    let query = 'sqlancer is:issue';
-    if (lastUpdatedAt) {
-      query += ` updated:<${lastUpdatedAt}`;
-    }
-
-    const issues = await fetchPaginatedGitHubIssues(query);
-    if (!issues.length) break;
-
-    allIssues.push(...issues);
-    lastUpdatedAt = issues[issues.length - 1].updated_at;
-  }
-
-  return allIssues;
-}
-
-async function fetchUpdatedGitHubIssues(latestUpdatedAt) {
-  const query = `sqlancer is:issue updated:>${latestUpdatedAt}`;
-  return await fetchPaginatedGitHubIssues(query);
-}
-
-async function classifyGitHubIssues(issues) {
-  return await Promise.all(
-    issues.map(async issue => {
-      const [owner, repo] = issue.repository_url.split('/').slice(-2);
-      const { data: comments } = await octokit.rest.issues.listComments({
-        owner,
-        repo,
-        issue_number: issue.number,
-      });
-
-      const { prompt, responseFormat } = getPromptAndResponseFormat(issue, comments, owner, repo);
-      const bugReport = await callOpenAIWithStructuredOutput(prompt, responseFormat);
-
-      return {
-        creator: issue.user.login,
-        title: issue.title,
-        description: issue.body,
-        dbms: bugReport.dbms,
-        oracle: bugReport.oracle,
-        status: bugReport.status,
-        html_url: issue.html_url,
-        created_at: issue.created_at,
-        updated_at: issue.updated_at,
-      };
-    })
-  );
-}
 
 // Routes
 app.get('/dbms', (req, res) => {
@@ -181,27 +40,14 @@ app.get('/issues', async (req, res) => {
   }
 });
 
-app.post('/issues', async (req, res) => {
-  try {
-    const allIssues = await fetchAllGitHubIssues();
-    const classifiedIssues = await classifyGitHubIssues(allIssues);
-    const savedIssues = await db.saveIssuesUsingCopy(classifiedIssues);
-
-    res.json({ issues: savedIssues });
-  } catch (error) {
-    console.error('Error fetching issues from GitHub:', error);
-    res.status(500).json({ error: 'Failed to fetch issues from GitHub.' });
-  }
-});
-
 app.post('/issues/refresh', async (req, res) => {
   try {
     const latestUpdatedAt = await db.getMetadata('latest_updated_at');
-    const issues = await fetchUpdatedGitHubIssues(latestUpdatedAt);
-    const classifiedIssues = await classifyGitHubIssues(issues);
+    let issues = await fetchUpdatedGitHubIssues(latestUpdatedAt);
+    issues = await classifyGitHubIssues(issues);
 
     const { newIssues, updatedIssues } =
-      await db.processAndSaveIssues(classifiedIssues, latestUpdatedAt);
+      await db.processAndSaveGitHubIssues(issues, latestUpdatedAt);
 
     res.json({ newIssues, updatedIssues });
   } catch (error) {

@@ -115,14 +115,7 @@ function GitHubIssuesPage() {
     const fetchIssues = async () => {
       try {
         const response = await axios.get(`${API_BASE_URL}/issues`, { signal });
-        const issues = response.data.issues;
-
-        if (issues.length > 0) {
-          setIssues(issues);
-        } else {
-          const response = await axios.post(`${API_BASE_URL}/issues`, null, { signal });
-          setIssues(response.data.issues);
-        }
+        setIssues(response.data.issues);
       } catch (error) {
         if (axios.isCancel(error)) {
           console.warn('Issue fetch request was aborted:', error.message);
@@ -194,18 +187,18 @@ function GitHubIssuesPage() {
       {
         accessorKey: 'status',
         header: 'Status',
+        filterVariant: 'multi-select',
         editVariant: 'select',
         editSelectOptions: statuses,
-        filterVariant: 'multi-select',
         size: 150,
       },
       {
         accessorFn: (row) => new Date(row.created_at),
         id: 'created_at',
         header: 'Date Posted',
+        filterVariant: 'date-range',
         enableEditing: false,
         enableGrouping: false,
-        filterVariant: 'date-range',
         size: 150,
         filterFn: dateFilterFn,
         Cell: DateCell,
@@ -214,9 +207,9 @@ function GitHubIssuesPage() {
         accessorFn: (row) => new Date(row.updated_at),
         id: 'updated_at',
         header: 'Last Updated',
+        filterVariant: 'date-range',
         enableEditing: false,
         enableGrouping: false,
-        filterVariant: 'date-range',
         size: 150,
         filterFn: dateFilterFn,
         Cell: DateCell,
@@ -374,7 +367,7 @@ function GitHubIssuesPage() {
       columnFilters: [
         {
           id: 'status',
-          value: ['Open', 'Closed', 'Fixed'],
+          value: ['Open', 'Fixed', 'Closed'],
         },
       ],
     },
