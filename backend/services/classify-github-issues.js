@@ -1,12 +1,12 @@
 import OpenAI from 'openai';
-import { zodResponseFormat } from 'openai/helpers/zod';
+import { zodTextFormat } from 'openai/helpers/zod';
 import { BugReport } from '../schemas/bug-report-schema.js';
 import { octokit } from './octokit-client.js';
 
-const openai = new OpenAI();
+const client = new OpenAI();
 
-function getPromptAndResponseFormat(issue, comments, owner, repo) {
-  const prompt = `Your task is to analyze a GitHub issue to determine whether it is a bug found by SQLancer and extract the following fields:
+const CLASSIFICATION_INSTRUCTIONS =
+`Your task is to analyze a GitHub issue to determine whether it is a bug found by SQLancer and extract the following fields:
 
 DBMS: Identify the DBMS the issue is associated with based on the repository or issue details.
 This should be one of the DBMSs supported by SQLancer, or "N/A" otherwise.
@@ -18,9 +18,12 @@ Status: Classify the issue into one of the following statuses:
 - Not a bug: The issue is not a bug found by SQLancer (e.g., it is unrelated to SQLancer, expected behavior, or a feature request).
 - Open: The issue is a bug found by SQLancer that has not yet been fixed.
 - Fixed: The issue is a bug found by SQLancer that has been resolved.
-- Closed: The issue is a bug found by SQLancer that was closed without being fixed.
+- Closed: The issue is a bug found by SQLancer that was closed without being fixed.`;
 
-Now, extract the appropriate values based on the following issue:
+const TEXT_FORMAT = zodTextFormat(BugReport, 'bug_report');
+
+function getPrompt(issue, comments, owner, repo) {
+  return `Analyze the following GitHub issue and extract the appropriate values:
 
 Repository: ${owner}/${repo}
 State: ${issue.state}${issue.state_reason ? ` (${issue.state_reason})` : ''}
@@ -31,26 +34,21 @@ Description:
 ${issue.body}
 
 Comments:
-${comments.map(comment => comment.body).join('\n\n')}`
-
-  return { prompt, responseFormat: zodResponseFormat(BugReport, 'bug_report') };
+${comments.map(comment => comment.body).join('\n\n')}`;
 }
 
-async function callOpenAIWithStructuredOutput(content, responseFormat) {
-  const completion = await openai.beta.chat.completions.parse({
+async function callOpenAIWithStructuredOutput(prompt) {
+  const response = await client.responses.create({
     model: 'gpt-4o-mini', // GPT-4o would exceed the TPM limit even at tier 3.
     temperature: 0.2, // Lower values make responses more focused and deterministic.
-    messages: [
-      {
-        role: 'system',
-        content: 'You are an AI assistant specialized in analyzing GitHub issues for bugs found by SQLancer.'
-      },
-      { role: 'user', content: content },
-    ],
-    response_format: responseFormat
+    instructions: CLASSIFICATION_INSTRUCTIONS,
+    input: prompt,
+    text: {
+      format: TEXT_FORMAT,
+    },
   });
 
-  return completion.choices[0].message.parsed;
+  return JSON.parse(response.output_text);
 }
 
 export async function classifyGitHubIssues(issues) {
@@ -63,8 +61,8 @@ export async function classifyGitHubIssues(issues) {
         issue_number: issue.number,
       });
 
-      const { prompt, responseFormat } = getPromptAndResponseFormat(issue, comments, owner, repo);
-      const bugReport = await callOpenAIWithStructuredOutput(prompt, responseFormat);
+      const prompt = getPrompt(issue, comments, owner, repo);
+      const bugReport = await callOpenAIWithStructuredOutput(prompt);
 
       return {
         creator: issue.user.login,
