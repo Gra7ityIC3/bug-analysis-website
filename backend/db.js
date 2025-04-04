@@ -251,12 +251,12 @@ export async function getSqlancerBugReports() {
   return result.rows;
 }
 
-export async function updateSqlancerBugReport(id, { status }) {
+export async function updateSqlancerBugReport(id, { status, severity }) {
   const result = await pool.query(
     `UPDATE ${SQLANCER_BUG_REPORTS_TABLE}
-     SET status = $1
-     WHERE id = $2`,
-    [status, id]
+     SET status = $1, severity = $2
+     WHERE id = $3`,
+    [status, severity, id]
   );
 
   return result.rowCount;

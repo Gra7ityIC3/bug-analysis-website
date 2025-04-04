@@ -1,9 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { format } from 'date-fns';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { styled, keyframes} from '@mui/material/styles';
+import { styled } from '@mui/material/styles';
 import {
   Alert,
   Box,
@@ -35,21 +33,14 @@ import {
 
 const API_BASE_URL = 'http://localhost:5000';
 
-const fadeIn = keyframes`
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-`;
-
 const StyledCard = styled(Card)(({ theme }) => ({
-  background: 'linear-gradient(135deg, #ffffff 0%, #eef2f6 100%)',
-  boxShadow: '0 6px 20px rgba(0, 0, 0, 0.08)',
-  borderRadius: '16px',
-  border: '1px solid rgba(0, 0, 0, 0.05)',
+  background: 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)',
+  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+  borderRadius: '12px',
   transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-  animation: `${fadeIn} 0.5s ease-out`,
   '&:hover': {
-    transform: 'translateY(-6px)',
-    boxShadow: '0 12px 30px rgba(0, 0, 0, 0.12)',
+    transform: 'translateY(-4px)',
+    boxShadow: '0 6px 16px rgba(0, 0, 0, 0.15)',
   },
 }));
 
@@ -376,9 +367,9 @@ function GitHubIssuesPage() {
     onRowSelectionChange: setRowSelection,
     renderDetailPanel: ({ row }) => (
       <div style={{ padding: '1rem', background: '#f9f9f9' }}>
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+        <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
           {row.original.description || 'No description provided.'}
-        </ReactMarkdown>
+        </pre>
       </div>
     ),
     renderRowActions: ({ row }) => (
@@ -445,17 +436,13 @@ function GitHubIssuesPage() {
   const label = `${count} bug report${count === 1 ? '' : 's'}`;
 
   return (
-    <Box sx={{ pb: 3, px: 3, backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
+    <Box sx={{ pb: 3, px: 3, backgroundColor: '#f0f4f8', minHeight: '100vh' }}>
       <Grid container spacing={3}>
         {/* Header */}
         <Grid item xs={12}>
           <StyledCard>
-            <CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 2 }}>
-              <Typography
-                variant="h4"
-                fontWeight="700"
-                sx={{ color: '#1e88e5', letterSpacing: '-0.5px' }}
-              >
+            <CardContent>
+              <Typography variant="h5" fontWeight="bold" color="#1976d2">
                 GitHub Issues Dashboard
               </Typography>
             </CardContent>
