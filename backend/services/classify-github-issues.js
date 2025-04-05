@@ -39,7 +39,7 @@ ${comments.map(comment => comment.body).join('\n\n')}`;
 
 async function callOpenAIWithStructuredOutput(prompt) {
   const response = await client.responses.create({
-    model: 'gpt-4o-mini', // GPT-4o would exceed the TPM limit even at tier 3.
+    model: 'gpt-4o',
     temperature: 0.2, // Lower values make responses more focused and deterministic.
     instructions: CLASSIFICATION_INSTRUCTIONS,
     input: prompt,
@@ -51,30 +51,51 @@ async function callOpenAIWithStructuredOutput(prompt) {
   return JSON.parse(response.output_text);
 }
 
-export async function classifyGitHubIssues(issues) {
-  return await Promise.all(
-    issues.map(async issue => {
-      const [owner, repo] = issue.repository_url.split('/').slice(-2);
-      const { data: comments } = await octokit.rest.issues.listComments({
-        owner,
-        repo,
-        issue_number: issue.number,
-      });
+async function classifyGitHubIssue(issue) {
+  const [owner, repo] = issue.repository_url.split('/').slice(-2);
+  const {data: comments} = await octokit.rest.issues.listComments({
+    owner,
+    repo,
+    issue_number: issue.number,
+  });
 
-      const prompt = getPrompt(issue, comments, owner, repo);
-      const bugReport = await callOpenAIWithStructuredOutput(prompt);
+  const prompt = getPrompt(issue, comments, owner, repo);
+  const bugReport = await callOpenAIWithStructuredOutput(prompt);
 
-      return {
-        creator: issue.user.login,
-        title: issue.title,
-        description: issue.body,
-        dbms: bugReport.dbms,
-        oracle: bugReport.oracle,
-        status: bugReport.status,
-        html_url: issue.html_url,
-        created_at: issue.created_at,
-        updated_at: issue.updated_at,
-      };
-    })
-  );
+  return {
+    creator: issue.user.login,
+    title: issue.title,
+    description: issue.body,
+    dbms: bugReport.dbms,
+    oracle: bugReport.oracle,
+    status: bugReport.status,
+    html_url: issue.html_url,
+    created_at: issue.created_at,
+    updated_at: issue.updated_at,
+  };
+}
+
+export async function classifyGitHubIssues(issues, batchSize = 200) {
+  const results = [];
+
+  for (let i = 0; i < issues.length; i += batchSize) {
+    const batch = issues.slice(i, i + batchSize);
+
+    const start = performance.now();
+    const batchResults = await Promise.all(batch.map(classifyGitHubIssue));
+    const end = performance.now();
+
+    results.push(...batchResults);
+    console.log(`Processed ${results.length} issues.`);
+
+    const elapsed = end - start;
+    const remaining = 60_000 - elapsed;
+
+    if (i + batchSize < issues.length && remaining > 0) {
+      console.log(`Sleeping for ${Math.ceil(remaining / 1000)} seconds before processing next batch...`);
+      await new Promise(resolve => setTimeout(resolve, remaining));
+    }
+  }
+
+  return results;
 }
