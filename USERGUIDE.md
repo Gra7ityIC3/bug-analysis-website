@@ -31,7 +31,7 @@ Refer to the `Quick Start` section to get the website running and the `Features`
 
 <div style="page-break-after: always;"></div>
 
-## Quick Start
+## Quick Start ⚡
 <!-- Have to explain the setting up of .env files to link to a local PGSQL database -->
 
 --------------------------------------------------------------------------------------------------------------------
@@ -58,7 +58,48 @@ Refer to the `Quick Start` section to get the website running and the `Features`
 <!-- For the Github issues -->
 
 ### View List of Supported Database Management Systems
+The **Suppported DBMSs** page showcases DBMS compatible with SQLancer.
 
+#### How to Use:
+1. Navigate to **Supported DBMSs** from the header.
+2. Browse the list of supported DBMS.
+3. Note: This page is informational and does not require interaction.
+
+####Supported DBMSs
+Citus, ClickHouse, CnosDB, CockroachDB, Databend, DataFusion, Doris, DuckDB, H2, HSQLDB, MariaDB, Materialize, MySQL, OceanBase, PostgreSQL, Presto, QuestDB, SQLite3, TiDB, YugabyteDB.
+
+---
 
 ### View Summary Statistics
+The **Summary Statistics** page provides a dashboard to analyze bug data across DBMS.
 
+#### Key Features:
+- **View Modes**:
+  - Toggle between **Table**, **Bar Chart**, and **Line Chart** using icons:
+    - **Table** (📋): Lists DBMS with counts for Open, Total, and Fixed issues.
+    - **Bar Chart** (📊): Visualizes Open and Fixed issues per DBMS in stacked bars.
+    - **Line Chart** (📈): Shows monthly bug trends over time.
+- **Table View**:
+  - Filter by DBMS or use range filters for issue counts.
+  - Sort by clicking column headers.
+- **Bar Chart View**:
+  - Compare Open vs. Fixed issues visually for each DBMS.
+- **Line Chart View**:
+  - **Date Range Filter**: Select **From Month** and **To Month** using date pickers to focus on a specific period.
+  - **DBMS Filter**: Click chips (e.g., "PostgreSQL", "MySQL") to include/exclude specific DBMS.
+  - **Reset**: Click the "Reset" button to clear date and DBMS filters.
+  - Displays a "Total Bugs" line alongside individual DBMS trends.
+
+#### How to Use:
+1. Navigate to **Summary Statistics** from the header.
+2. Choose a view mode:
+   - Use **Table** for raw data.
+   - Switch to **Bar Chart** for a quick visual comparison.
+   - Select **Line Chart** for trend analysis.
+3. In Line Chart mode:
+   - Pick a date range (e.g., Jan 2024 to Apr 2025).
+   - Click DBMS chips to focus on specific databases.
+   - Reset filters if needed.
+4. Hover over chart points for detailed tooltips (e.g., "PostgreSQL, March 2025: 15 bugs").
+
+---
