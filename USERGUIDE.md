@@ -32,7 +32,31 @@ Refer to the `Quick Start` section to get the website running and the `Features`
 <div style="page-break-after: always;"></div>
 
 ## Quick Start ⚡
-<!-- Have to explain the setting up of .env files to link to a local PGSQL database -->
+<!-- TODO: add link to release -->
+1. Ensure you have Java `17` and npm `10.9.2` installed on your computer. <br>
+   Note that other versions of Java and npm may encounter errors when launching the website.
+
+2. Download the latest release from [here](). <!-- add link to release -->
+
+3. Copy the file to the folder you want to use as the _home folder_ for the website.
+
+4. Open two command terminals, `cd` into the folder you put the jar file in.
+   1. For the `backend`
+        1. `cd` into the `backend` folder and run the command `npm install` to install the required prerequisites.
+        2. Create a `.env` file in the `backend` folder with the following lines:
+           ```
+           DATABASE_URL=<insert link to the database>
+           OPENAI_API_KEY=<insert openai api key>
+           ```
+        3. Run the command `node server.js` to launch the backend.
+
+   2. For the `frontend`
+      1. `cd` into the `frontend` folder and run the command `npm install` to install the required prerequisites.
+      2. Run the command `npm run dev` to launch the website.
+      3. The website can be accessed through `http://localhost:5173/`
+
+5. Access the website to explore the available features as explained below. 
+
 
 --------------------------------------------------------------------------------------------------------------------
 
