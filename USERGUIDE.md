@@ -40,7 +40,7 @@ Refer to the `Quick Start` section to get the website running and the `Features`
 
 3. Copy the file to the folder you want to use as the _home folder_ for the website.
 
-4. Open two command terminals, `cd` into the folder you put the jar file in.
+4. Open two command terminals and `cd` into the folder.
    1. For the `backend`
         1. `cd` into the `backend` folder and run the command `npm install` to install the required prerequisites.
         2. Create a `.env` file in the `backend` folder with the following lines:
