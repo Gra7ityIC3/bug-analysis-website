@@ -137,13 +137,50 @@ app.get('/dbms-summary-data', async (req, res) => {
   }
 });
 
+app.post('/dbms-summary-data', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    const summaryData = await db.getGroupedSummaryData(ids, 'dbms');
+
+    res.json(summaryData);
+  } catch (error) {
+    console.error('Error fetching DBMS summary data for selected IDs:', error);
+    res.status(500).json({ error: 'Failed to fetch DBMS summary data for selected IDs.' });
+  }
+});
+
+app.post('/oracle-summary-data', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    const summaryData = await db.getGroupedSummaryData(ids, 'oracle');
+
+    res.json(summaryData);
+  } catch (error) {
+    console.error('Error fetching oracle summary data for selected IDs:', error);
+    res.status(500).json({ error: 'Failed to fetch oracle summary data for selected IDs.' });
+  }
+});
+
+app.post('/status-summary-data', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    const summaryData = await db.getStatusSummaryData(ids);
+
+    res.json(summaryData);
+  } catch (error) {
+    console.error('Error fetching status summary data for selected IDs:', error);
+    res.status(500).json({ error: 'Failed to fetch status summary data for selected IDs.' });
+  }
+});
+
 app.get('/dbms-monthly-data', async (req, res) => {
   try {
-    // Get the earliest and latest months to fill in gaps
-    const { startMonth, endMonth } = await db.getDbmsMonthRange();
-
     // Get the bug counts
     const monthlyCounts = await db.getDbmsMonthlyCounts();
+
+    // Get the earliest and latest months to fill in gaps
+    const startMonth = monthlyCounts[0].month;
+    const endMonth = monthlyCounts.at(-1).month;
 
     // Generate all months between start and end
     const months = [];
@@ -179,6 +216,18 @@ app.get('/dbms-monthly-data', async (req, res) => {
   } catch (error) {
     console.error('Error fetching DBMS monthly data:', error);
     res.status(500).json({ error: 'Failed to fetch DBMS monthly data.' });
+  }
+});
+
+app.post('/dbms-monthly-data', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    const monthlyCounts = await db.getDbmsMonthlyCountsByIds(ids);
+
+    res.json(monthlyCounts);
+  } catch (error) {
+    console.error('');
+    res.status(500).json({ error: '' });
   }
 });
 

@@ -5,13 +5,8 @@ import { styled } from '@mui/material/styles';
 import {
   Alert,
   Box,
-  Button,
   Card,
   CardContent,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Grid,
   IconButton,
   Snackbar,
@@ -23,13 +18,16 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   OpenInNew as OpenInNewIcon,
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon,
+  InsertChart as InsertChartIcon
 } from '@mui/icons-material';
 import {
   MaterialReactTable,
   MRT_ToggleFiltersButton,
   useMaterialReactTable
 } from 'material-react-table';
+import ChartDialog from '../components/ChartDialog.jsx';
+import DeleteConfirmationDialog from '../components/DeleteConfirmationDialog.jsx';
 
 const API_BASE_URL = 'http://localhost:5000';
 
@@ -78,26 +76,72 @@ const getRefreshSnackbarMessage = (newCount, updatedCount) => {
   return messages.join(', ') || 'No new or updated bug reports found';
 };
 
+const parseCounts = (item) => {
+  for (const [key, value] of Object.entries(item).slice(1)) {
+    item[key] = parseInt(value);
+  }
+  return item;
+};
+
+const fillMonthlyDbmsCounts = (monthlyCounts, dbmsDataset) => {
+  const result = {};
+
+  let currentMonth = new Date(monthlyCounts[0].date);
+  const endMonth = new Date(monthlyCounts.at(-1).date);
+
+  while (currentMonth <= endMonth) {
+    const month = currentMonth.toISOString().slice(0, 7); // 'YYYY-MM'
+    result[month] = { date: new Date(currentMonth) };
+
+    for (const { dbms } of dbmsDataset) {
+      result[month][dbms] = 0;
+    }
+
+    currentMonth.setMonth(currentMonth.getMonth() + 1);
+  }
+
+  for (const { date, dbms, total_count } of monthlyCounts) {
+    const month = date.slice(0, 7); // date is already an ISO string
+    result[month][dbms] = parseInt(total_count);
+  }
+
+  return Object.values(result);
+};
+
 function GitHubIssuesPage() {
+  // Data sources
   const [issues, setIssues] = useState([]);
   const [dbmsList, setDbmsList] = useState([]);
   const [oracles, setOracles] = useState([]);
   const [statuses, setStatuses] = useState([]);
 
+  // Loading indicators
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isRefetching, setIsRefetching] = useState(false);
+  const [isChartLoading, setIsChartLoading] = useState(false);
 
+  // Feedback snackbar
   const [isError, setIsError] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarOpen, setSnackbarOpen] = useState(false);
 
   const [rowSelection, setRowSelection] = useState({});
 
+  // Delete confirmation dialog
   const [rowsToDelete, setRowsToDelete] = useState([]);
   const [deleteMode, setDeleteMode] = useState(null); // 'single' | 'multi'
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Chart dialog
+  const [chartDialogOpen, setChartDialogOpen] = useState(false);
+
+  // Chart datasets
+  const [dbmsDataset, setDbmsDataset] = useState([]);
+  const [oracleDataset, setOracleDataset] = useState([]);
+  const [statusDataset, setStatusDataset] = useState([]);
+  const [datePostedDataset, setDatePostedDataset] = useState([]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -240,14 +284,14 @@ function GitHubIssuesPage() {
     }
   };
 
-  const handleOpenDialog = (rows, mode) => {
+  const handleOpenDeleteDialog = (rows, mode) => {
     setRowsToDelete(rows);
     setDeleteMode(mode);
-    setDialogOpen(true);
+    setDeleteDialogOpen(true);
   };
 
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
+  const handleCloseDeleteDialog = () => {
+    setDeleteDialogOpen(false);
   };
 
   const handleConfirmDelete = async () => {
@@ -278,7 +322,7 @@ function GitHubIssuesPage() {
 
       setIsError(false);
       setSnackbarMessage('Bug report deleted');
-      handleCloseDialog();
+      handleCloseDeleteDialog();
     } catch (error) {
       console.error('Error deleting bug report:', error);
       setIsError(true);
@@ -302,7 +346,7 @@ function GitHubIssuesPage() {
 
       setIsError(false);
       setSnackbarMessage(`${label} deleted`);
-      handleCloseDialog();
+      handleCloseDeleteDialog();
     } catch (error) {
       console.error(`Error deleting ${label}:`, error);
       setIsError(true);
@@ -337,6 +381,49 @@ function GitHubIssuesPage() {
       setIsRefetching(false);
       setSnackbarOpen(true);
     }
+  };
+
+  const handleOpenChartDialog = async (rows) => {
+    setIsChartLoading(true);
+
+    try {
+      const ids = rows.map(row => row.id);
+
+      const [
+        { data: dbmsSummary },
+        { data: oracleSummary },
+        { data: statusSummary },
+        { data: monthlyCounts },
+      ] = await Promise.all([
+        axios.post(`${API_BASE_URL}/dbms-summary-data`, { ids }),
+        axios.post(`${API_BASE_URL}/oracle-summary-data`, { ids }),
+        axios.post(`${API_BASE_URL}/status-summary-data`, { ids }),
+        axios.post(`${API_BASE_URL}/dbms-monthly-data`, { ids }),
+      ]);
+
+      const dbmsDataset = dbmsSummary.map(parseCounts);
+      const oracleDataset = oracleSummary.map(parseCounts);
+      const statusDataset = statusSummary.map(parseCounts);
+      const datePostedDataset = fillMonthlyDbmsCounts(monthlyCounts, dbmsDataset);
+
+      setDbmsDataset(dbmsDataset);
+      setOracleDataset(oracleDataset);
+      setStatusDataset(statusDataset);
+      setDatePostedDataset(datePostedDataset);
+
+      setChartDialogOpen(true);
+    } catch (error) {
+      console.error('Error fetching chart data', error);
+      setIsError(true);
+      setSnackbarMessage('Failed to generate charts');
+      setSnackbarOpen(true);
+    } finally {
+      setIsChartLoading(false);
+    }
+  };
+
+  const handleCloseChartDialog = () => {
+    setChartDialogOpen(false);
   };
 
   const table = useMaterialReactTable({
@@ -380,7 +467,7 @@ function GitHubIssuesPage() {
           </IconButton>
         </Tooltip>
         <Tooltip title="Delete issue">
-          <IconButton color="error" onClick={() => handleOpenDialog([row], 'single')}>
+          <IconButton color="error" onClick={() => handleOpenDeleteDialog([row], 'single')}>
             <DeleteIcon />
           </IconButton>
         </Tooltip>
@@ -404,11 +491,22 @@ function GitHubIssuesPage() {
       return (
         <Box>
           <MRT_ToggleFiltersButton table={table}/>
+          <Tooltip title="Generate charts">
+            <span>
+              <IconButton
+                disabled={selectedRows.length === 0}
+                onClick={() => handleOpenChartDialog(selectedRows)}
+                loading={isChartLoading}
+              >
+                <InsertChartIcon/>
+              </IconButton>
+            </span>
+          </Tooltip>
           <Tooltip title="Delete issues">
             <span>
               <IconButton
                 disabled={selectedRows.length === 0}
-                onClick={() => handleOpenDialog(selectedRows, 'multi')}
+                onClick={() => handleOpenDeleteDialog(selectedRows, 'multi')}
               >
                 <DeleteIcon/>
               </IconButton>
@@ -455,23 +553,25 @@ function GitHubIssuesPage() {
         </Grid>
       </Grid>
 
-      <Dialog open={dialogOpen} onClose={handleCloseDialog}>
-        {deleteMode === 'single' ? (
-          <>
-            <DialogTitle>Delete bug report?</DialogTitle>
-            <DialogContent>This bug report will be permanently deleted.</DialogContent>
-          </>
-        ) : (
-          <>
-            <DialogTitle>Delete {label}?</DialogTitle>
-            <DialogContent>{label} will be permanently deleted.</DialogContent>
-          </>
-        )}
-        <DialogActions>
-          <Button onClick={handleCloseDialog} disabled={isDeleting}>Cancel</Button>
-          <Button onClick={handleConfirmDelete} loading={isDeleting}>OK</Button>
-        </DialogActions>
-      </Dialog>
+      <DeleteConfirmationDialog
+        open={deleteDialogOpen}
+        onClose={handleCloseDeleteDialog}
+        deleteMode={deleteMode}
+        label={label}
+        isDeleting={isDeleting}
+        handleConfirmDelete={handleConfirmDelete}
+      />
+
+      <ChartDialog
+        open={chartDialogOpen}
+        onClose={handleCloseChartDialog}
+        datasets={{
+          dbms: dbmsDataset,
+          oracle: oracleDataset,
+          status: statusDataset,
+          datePosted: datePostedDataset,
+        }}
+      />
 
       <Snackbar
         open={snackbarOpen}

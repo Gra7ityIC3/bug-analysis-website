@@ -291,23 +291,41 @@ export async function getDbmsSummaryData() {
   return result.rows;
 }
 
-export async function getDbmsMonthRange() {
-  const rangeQuery = `
-    WITH combined_dates AS (
-      SELECT created_at FROM ${GITHUB_ISSUES_TABLE}
-      WHERE dbms != 'N/A' AND status != 'Not a bug'
-      UNION ALL
-      SELECT created_at FROM ${SQLANCER_BUG_REPORTS_TABLE}
-      WHERE dbms IS NOT NULL AND status != 'Not a bug'
-    )
-    SELECT 
-      DATE_TRUNC('month', MIN(created_at)) AS "startMonth",
-      DATE_TRUNC('month', MAX(created_at)) AS "endMonth"
-    FROM combined_dates;
+export async function getGroupedSummaryData(ids, columnName) {
+  const summaryQuery = `
+    SELECT
+      ${columnName},
+      COUNT(*) FILTER (WHERE status = 'Open') AS open_count,
+      COUNT(*) FILTER (WHERE status = 'Fixed') AS fixed_count,
+      COUNT(*) FILTER (WHERE status = 'Closed') AS closed_count
+    FROM ${GITHUB_ISSUES_TABLE}
+    WHERE id = ANY($1) AND ${columnName} != 'N/A'
+    GROUP BY ${columnName}
+    ORDER BY ${columnName} ASC;
   `;
 
-  const result = await pool.query(rangeQuery);
-  return result.rows[0];
+  const result = await pool.query(summaryQuery, [ids]);
+  return result.rows;
+}
+
+export async function getStatusSummaryData(ids) {
+  const summaryQuery = `
+    SELECT status, COUNT(*) AS total_count
+    FROM ${GITHUB_ISSUES_TABLE}
+    WHERE id = ANY($1)
+    GROUP BY status
+    ORDER BY
+      CASE status
+        WHEN 'Open' THEN 1
+        WHEN 'Fixed' THEN 2
+        WHEN 'Closed' THEN 3
+        WHEN 'Not a bug' THEN 4
+        ELSE 5
+      END;
+  `;
+
+  const result = await pool.query(summaryQuery, [ids]);
+  return result.rows;
 }
 
 export async function getDbmsMonthlyCounts() {
@@ -324,11 +342,30 @@ export async function getDbmsMonthlyCounts() {
       DATE_TRUNC('month', created_at) AS month,
       COUNT(*) AS total_bugs
     FROM combined_issues
-    GROUP BY dbms, DATE_TRUNC('month', created_at)
+    GROUP BY dbms, month
     ORDER BY month ASC, dbms ASC;
   `;
 
   const result = await pool.query(monthlyCountsQuery);
+  return result.rows;
+}
+
+export async function getDbmsMonthlyCountsByIds(ids) {
+  const monthlyCountsQuery = `
+    SELECT
+      DATE_TRUNC('month', created_at) AS date,
+      dbms,
+      COUNT(*) AS total_count
+    FROM ${GITHUB_ISSUES_TABLE}
+    WHERE
+      id = ANY($1)
+      AND dbms != 'N/A'
+      AND status != 'Not a bug'
+    GROUP BY date, dbms
+    ORDER BY date ASC, dbms ASC;
+  `;
+
+  const result = await pool.query(monthlyCountsQuery, [ids]);
   return result.rows;
 }
 
