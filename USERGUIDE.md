@@ -15,23 +15,21 @@ Refer to the `Quick Start` section to get the website running and the `Features`
 
 <div style="page-break-after: always;"></div>
 
-# Table of Contents
+## Table of Contents
+
 1. [Quick Start](#quick-start)
 2. [Features](#features)
-   
-   3. [View Bug Reports Related to SQLancer](#viewing-bug-reports-related-to-sqlancer)
-   4. [Filter Bug Reports](#filter-bug-reports)
-   5. [Edit Listed Bug Reports](#edit-listed-bug-reports)
-   6. [Delete Listed Bug Reports](#delete-listed-bug-reports)
-   7. [Refresh List of Bugs](#refresh-list-of-bugs)
-   8. [View List of Supported Database Management Systems](#view-list-of-supported-database-management-systems)
-   9. [View Summary Statistics](#view-summary-statistics)
+   - [Viewing bug reports](#viewing-bug-reports)
+   - [Searching and filtering bug reports](#searching-and-filtering-bug-reports)
+   - [Editing bug reports](#editing-bug-reports)
+   - [Deleting bug reports](#deleting-bug-reports)
+   - [Refreshing list of bug reports](#refreshing-list-of-bug-reports)
+   - [Generating charts for selected bug reports](#generating-charts-for-selected-bug-reports)
+   - [Viewing summary statistics](#viewing-summary-statistics)
+   - [Viewing supported DBMSs](#viewing-supported-dbmss)
 
---------------------------------------------------------------------------------------------------------------------
+## Quick Start
 
-<div style="page-break-after: always;"></div>
-
-## Quick Start ⚡
 <!-- TODO: add link to release -->
 1. Ensure you have Java `17` and npm `10.9.2` installed on your computer. <br>
    Note that other versions of Java and npm may encounter errors when launching the website.
@@ -55,46 +53,24 @@ Refer to the `Quick Start` section to get the website running and the `Features`
       2. Run the command `npm run dev` to launch the website.
       3. The website can be accessed through `http://localhost:5173/`
 
-5. Access the website to explore the available features as explained below. 
-
-
---------------------------------------------------------------------------------------------------------------------
-
-<div style="page-break-after: always;"></div>
+5. Access the website to explore the available features as explained below.
 
 ## Features
 
-### Viewing Bug Reports Related to SQLancer
-<!-- Mention both pages with listed bug reports -->
+### Viewing bug reports
 
-### Filter Bug Reports
-<!-- Mention all the different ways of sorting and filtering -->
+### Searching and filtering bug reports
 
-### Edit Listed Bug Reports
+### Editing bug reports
 
+### Deleting bug reports
 
-### Delete Listed Bug Reports
+### Refreshing list of bug reports
 
+### Generating charts for selected bug reports
 
-<div style="page-break-after: always;"></div>
+### Viewing summary statistics
 
-### Refresh List of Bugs
-<!-- For the Github issues -->
-
-### View List of Supported Database Management Systems
-The **Suppported DBMSs** page showcases DBMS compatible with SQLancer.
-
-#### How to Use:
-1. Navigate to **Supported DBMSs** from the header.
-2. Browse the list of supported DBMS.
-3. Note: This page is informational and does not require interaction.
-
-####Supported DBMSs
-Citus, ClickHouse, CnosDB, CockroachDB, Databend, DataFusion, Doris, DuckDB, H2, HSQLDB, MariaDB, Materialize, MySQL, OceanBase, PostgreSQL, Presto, QuestDB, SQLite3, TiDB, YugabyteDB.
-
----
-
-### View Summary Statistics
 The **Summary Statistics** page provides a dashboard to analyze bug data across DBMS.
 
 #### Key Features:
@@ -126,4 +102,32 @@ The **Summary Statistics** page provides a dashboard to analyze bug data across 
    - Reset filters if needed.
 4. Hover over chart points for detailed tooltips (e.g., "PostgreSQL, March 2025: 15 bugs").
 
----
+### Viewing supported DBMSs
+
+The **Suppported DBMSs** page shows all database management systems currently supported by SQLancer.
+
+> [!NOTE]
+> This page is informational and does not require interaction.
+
+**Supported DBMSs:**
+
+- Citus
+- ClickHouse
+- CnosDB
+- CockroachDB
+- Databend
+- DataFusion
+- Doris
+- DuckDB
+- H2
+- HSQLDB
+- MariaDB
+- Materialize
+- MySQL
+- OceanBase
+- PostgreSQL
+- Presto
+- QuestDB
+- SQLite3
+- TiDB
+- YugabyteDB
