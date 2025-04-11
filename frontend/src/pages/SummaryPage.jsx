@@ -56,7 +56,7 @@ function SummaryPage() {
   const [toMonth, setToMonth] = useState(null);
 
   useEffect(() => {
-    axios.get('http://localhost:5000/dbms-summary-data')
+    axios.get('http://localhost:5001/dbms-summary-data')
       .then(response => {
         const formattedData = response.data.map(item => ({
           ...item,
@@ -72,7 +72,7 @@ function SummaryPage() {
 
   // Fetch monthly data
   useEffect(() => {
-    axios.get('http://localhost:5000/dbms-monthly-data')
+    axios.get('http://localhost:5001/dbms-monthly-data')
       .then(response => {
         setDbmsMonthlyData(response.data);
       })

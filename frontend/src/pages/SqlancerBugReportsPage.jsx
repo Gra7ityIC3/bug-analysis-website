@@ -30,7 +30,7 @@ import {
   useMaterialReactTable
 } from 'material-react-table';
 
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = 'http://localhost:5001';
 
 const StyledCard = styled(Card)(({ theme }) => ({
   background: 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)',

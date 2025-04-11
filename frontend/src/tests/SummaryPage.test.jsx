@@ -28,8 +28,8 @@ const mockMonthlyData = {
 
 beforeEach(() => {
   // Mock data
-  mock.onGet('http://localhost:5000/dbms-summary-data').reply(200, mockSummaryData);
-  mock.onGet('http://localhost:5000/dbms-monthly-data').reply(200, mockMonthlyData);
+  mock.onGet('http://localhost:5001/dbms-summary-data').reply(200, mockSummaryData);
+  mock.onGet('http://localhost:5001/dbms-monthly-data').reply(200, mockMonthlyData);
 });
 
 afterEach(() => {

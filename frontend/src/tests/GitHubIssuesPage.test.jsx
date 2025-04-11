@@ -42,10 +42,10 @@ const mockIssues = {
 
 beforeEach(() => {
   // Mock data
-  mock.onGet('http://localhost:5000/dbms').reply(200, { dbms: mockDbms });
-  mock.onGet('http://localhost:5000/oracles').reply(200, { oracles: mockOracles });
-  mock.onGet('http://localhost:5000/statuses').reply(200, { statuses: mockStatuses });
-  mock.onGet('http://localhost:5000/issues').reply(200, mockIssues);
+  mock.onGet('http://localhost:5001/dbms').reply(200, { dbms: mockDbms });
+  mock.onGet('http://localhost:5001/oracles').reply(200, { oracles: mockOracles });
+  mock.onGet('http://localhost:5001/statuses').reply(200, { statuses: mockStatuses });
+  mock.onGet('http://localhost:5001/issues').reply(200, mockIssues);
 });
 
 afterEach(() => {
@@ -98,7 +98,7 @@ test('Test Expand All Description Button', async () => {
 });
 
 test('Test Edit Issue', async () => {
-  mock.onPut('http://localhost:5000/issue/1').reply(200);
+  mock.onPut('http://localhost:5001/issue/1').reply(200);
 
   render(<GitHubIssuesPage />);
 
@@ -124,12 +124,12 @@ test('Test Edit Issue', async () => {
   // Verify API call
   await waitFor(() => {
     expect(mock.history.put.length).toBe(1);
-    expect(mock.history.put[0].url).toBe('http://localhost:5000/issue/1');
+    expect(mock.history.put[0].url).toBe('http://localhost:5001/issue/1');
   });
 });
 
 test('Test Delete Issue 1', async () => {
-  mock.onDelete('http://localhost:5000/issues').reply(200);
+  mock.onDelete('http://localhost:5001/issues').reply(200);
   render(<GitHubIssuesPage />);
 
   // Wait for table to load
@@ -148,21 +148,21 @@ test('Test Delete Issue 1', async () => {
   });
 
   // Click confirm button
-  const confirmButton = screen.getByRole('button', { name: /ok/i });
+  const confirmButton = screen.getByRole('button', { name: /delete/i });
   fireEvent.click(confirmButton);
 
   // Check if data in table is correct
   await waitFor(() => {
     expect(mock.history.delete.length).toBe(1);
     const deleteCall = mock.history.delete[0];
-    expect(deleteCall.url).toBe('http://localhost:5000/issues');
+    expect(deleteCall.url).toBe('http://localhost:5001/issues');
     expect(JSON.parse(deleteCall.data)).toEqual({ ids: ['1'] });
     expect(screen.queryByText('Test Issue 1')).not.toBeInTheDocument();
   });
 });
 
 test('Test Delete All Issue', async () => {
-  mock.onDelete('http://localhost:5000/issues').reply(200);
+  mock.onDelete('http://localhost:5001/issues').reply(200);
   render(<GitHubIssuesPage />);
 
   // Wait for table to load
@@ -195,14 +195,14 @@ test('Test Delete All Issue', async () => {
   });
 
   // Click confirm button
-  const confirmButton = screen.getByRole('button', { name: /ok/i });
+  const confirmButton = screen.getByRole('button', { name: /delete/i });
   fireEvent.click(confirmButton);
 
   // Check if data in table is correct
   await waitFor(() => {
     expect(mock.history.delete.length).toBe(1);
     const deleteCall = mock.history.delete[0];
-    expect(deleteCall.url).toBe('http://localhost:5000/issues');
+    expect(deleteCall.url).toBe('http://localhost:5001/issues');
     expect(JSON.parse(deleteCall.data)).toEqual({ ids: ['1', '2'] });
     expect(screen.queryByText('Test Issue 1')).not.toBeInTheDocument();
     expect(screen.queryByText('Test Issue 2')).not.toBeInTheDocument();
@@ -266,7 +266,7 @@ test('Test Refresh', async () => {
     }
   ];
 
-  mock.onPost('http://localhost:5000/issues/refresh').reply(200, {
+  mock.onPost('http://localhost:5001/issues/refresh').reply(200, {
     newIssues,
     updatedIssues
   });
@@ -285,7 +285,7 @@ test('Test Refresh', async () => {
   // Wait for refresh
   await waitFor(() => {
     expect(mock.history.post.length).toBe(1);
-    expect(mock.history.post[0].url).toBe('http://localhost:5000/issues/refresh');
+    expect(mock.history.post[0].url).toBe('http://localhost:5001/issues/refresh');
   });
 
   // Check if data in table is correct
