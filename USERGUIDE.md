@@ -3,6 +3,8 @@ layout: page
 title: User Guide
 ---
 
+# Bug Analysis Website User Guide
+
 Welcome to the user guide for the bug analysis website for SQLancer. <br>
 
 This website is designed to **compile bugs found by SQLancer** reported in different sources and **aggregating the data collected into graphs and tables** to derive useful information. <br>
@@ -11,9 +13,7 @@ If you are a database designer or database tester this website can help you to k
 
 If you are a database user this website can help you to find interesting trends such as which database management system has had the least bugs in recent months or fix bug reports the quickest! <br>
 
-Refer to the `Quick Start` section to get the website running and the `Features` section on the features that are available. <br>
-
-<div style="page-break-after: always;"></div>
+Refer to the `Quick Start` section to get the website running and the `Features` section on the features that are available.
 
 ## Table of Contents
 
@@ -21,6 +21,7 @@ Refer to the `Quick Start` section to get the website running and the `Features`
 2. [Features](#features)
    - [Viewing bug reports](#viewing-bug-reports)
    - [Searching and filtering bug reports](#searching-and-filtering-bug-reports)
+   - [Sorting and grouping bug reports](#sorting-and-grouping-bug-reports)
    - [Editing bug reports](#editing-bug-reports)
    - [Deleting bug reports](#deleting-bug-reports)
    - [Refreshing list of bug reports](#refreshing-list-of-bug-reports)
@@ -30,36 +31,38 @@ Refer to the `Quick Start` section to get the website running and the `Features`
 
 ## Quick Start
 
-<!-- TODO: add link to release -->
-1. Ensure you have Java `17` and npm `10.9.2` installed on your computer. <br>
-   Note that other versions of Java and npm may encounter errors when launching the website.
+1. Ensure you have [Node.js](https://nodejs.org/en/download) version 18 or later installed.
+2. Download and unzip the source code archive file from [here](https://github.com/NUS-CS3213-AY2425S2/bug-analysis-project-group-13/releases/latest).
+3. Download the `.env` file from [Google Drive](https://drive.google.com/file/d/1h-SdR_qSfQC5Fzs8qkBQ3JCDehea29-l/view?usp=sharing) and save it in the `backend/` directory.
 
-2. Download the latest release from [here](). <!-- add link to release -->
+   > When downloading the `.env` file, make sure the filename includes the leading `.`.
 
-3. Copy the file to the folder you want to use as the _home folder_ for the website.
+4. Open two command terminals and `cd` to the project directory.
 
-4. Open two command terminals and `cd` into the folder.
-   1. For the `backend`
-        1. `cd` into the `backend` folder and run the command `npm install` to install the required prerequisites.
-        2. Create a `.env` file in the `backend` folder with the following lines:
-           ```
-           DATABASE_URL=<insert link to the database>
-           OPENAI_API_KEY=<insert openai api key>
-           ```
-        3. Run the command `node server.js` to launch the backend.
+   On the first terminal, run the following commands:
 
-   2. For the `frontend`
-      1. `cd` into the `frontend` folder and run the command `npm install` to install the required prerequisites.
-      2. Run the command `npm run dev` to launch the website.
-      3. The website can be accessed through `http://localhost:5173/`
+   ```
+   cd frontend
+   npm install
+   npm run dev
+   ```
 
-5. Access the website to explore the available features as explained below.
+   On the second terminal, run the following commands:
+
+   ```
+   cd backend
+   npm install
+   node server.js
+   ```
+5. The website can be accessed at http://localhost:5173/.
 
 ## Features
 
 ### Viewing bug reports
 
 ### Searching and filtering bug reports
+
+### Sorting and grouping bug reports
 
 ### Editing bug reports
 
@@ -106,8 +109,7 @@ The **Summary Statistics** page provides a dashboard to analyze bug data across 
 
 The **Suppported DBMSs** page shows all database management systems currently supported by SQLancer.
 
-> [!NOTE]
-> This page is informational and does not require interaction.
+<!-- Insert screenshot here -->
 
 **Supported DBMSs:**
 
