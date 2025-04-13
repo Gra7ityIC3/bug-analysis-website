@@ -5,15 +5,13 @@ title: User Guide
 
 # Bug Analysis Website User Guide
 
-Welcome to the user guide for the bug analysis website for SQLancer. <br>
+This website is designed to **compile bugs found by SQLancer** reported across multiple sources (e.g., GitHub issues) and **visualize the aggregated data in charts and tables** to gain useful insights.
 
-This website is designed to **compile bugs found by SQLancer** reported in different sources and **aggregating the data collected into graphs and tables** to derive useful information. <br>
+If you are a **database system developer** or **tester**, you can use this website to track which bugs have been found or fixed and identify common bugs to better prioritize debugging or testing efforts.
 
-If you are a database designer or database tester this website can help you to keep track and take note of currently open bug reports as well as bugs that have already been fixed! <br>
+If you are a **database user**, you can explore trends in bug frequency, fix rates, and overall reliability across different database systems.
 
-If you are a database user this website can help you to find interesting trends such as which database management system has had the least bugs in recent months or fix bug reports the quickest! <br>
-
-Refer to the `Quick Start` section to get the website running and the `Features` section on the features that are available.
+Refer to the [Quick Start](#quick-start) section to get started and the [Features](#features) section to explore what the website can do.
 
 ## Table of Contents
 
@@ -24,10 +22,11 @@ Refer to the `Quick Start` section to get the website running and the `Features`
    - [Sorting and grouping bug reports](#sorting-and-grouping-bug-reports)
    - [Editing bug reports](#editing-bug-reports)
    - [Deleting bug reports](#deleting-bug-reports)
-   - [Refreshing list of bug reports](#refreshing-list-of-bug-reports)
-   - [Generating charts for selected bug reports](#generating-charts-for-selected-bug-reports)
+   - [Refreshing list of GitHub issues](#refreshing-list-of-github-issues)
+   - [Generating charts for selected GitHub issues](#generating-charts-for-selected-github-issues)
    - [Viewing summary statistics](#viewing-summary-statistics)
    - [Viewing supported DBMSs](#viewing-supported-dbmss)
+3. [FAQ](#faq)
 
 ## Quick Start
 
@@ -35,7 +34,7 @@ Refer to the `Quick Start` section to get the website running and the `Features`
 2. Download and unzip the source code archive file from [here](https://github.com/NUS-CS3213-AY2425S2/bug-analysis-project-group-13/releases/latest).
 3. Download the `.env` file from [Google Drive](https://drive.google.com/file/d/1h-SdR_qSfQC5Fzs8qkBQ3JCDehea29-l/view?usp=sharing) and save it in the `backend/` directory.
 
-   > When downloading the `.env` file, make sure the filename includes the leading `.`.
+   > When downloading the `.env` file, make sure the filename includes the leading `.`
 
 4. Open two command terminals and `cd` to the project directory.
 
@@ -108,44 +107,68 @@ The DBMS, Test Oracle, Status and Severity columns can be grouped by dragging th
 
 ### Editing bug reports
 
+You can edit the **DBMS**, **Test Oracle**, and **Status** fields of a GitHub issue by clicking the **edit icon** in the Actions column of the corresponding row. This makes the entire row editable, allowing you to make changes and save them in place.
+
+For **SQLancer bug reports**, only the **Status** and **Severity** fields are editable.
+
+<!-- Insert screenshot here -->
+
 ### Deleting bug reports
 
-### Refreshing list of bug reports
+You can delete a bug report by clicking the **delete icon** in the Actions column of the corresponding row. This opens a confirmation dialog asking you to confirm the deletion.
 
-### Generating charts for selected bug reports
+<!-- Insert screenshot here -->
+
+You can delete multiple bug reports at once by selecting the desired rows using the checkboxes and clicking the **delete icon** in the toolbar. This opens a confirmation dialog asking you to confirm the deletion.
+
+<!-- Insert screenshot here -->
+
+> [!CAUTION]
+> Deleting bug reports is permanent and cannot be undone. Make sure you intend to delete them before confirming.
+
+### Refreshing list of GitHub issues
+
+You can update the list of GitHub issues by clicking the **refresh icon** in the toolbar. New issues will be added to the top of the table, while existing issues will be updated in place.
+
+<!-- Insert screenshot here -->
+
+### Generating charts for selected GitHub issues
+
+You can generate summary charts for selected GitHub issues by selecting the desired rows using the checkboxes and clicking the **chart** icon in the toolbar. This opens a chart dialog where you can configure the chart settings.
+
+<!-- Insert screenshot here -->
+
+<!-- Insert screenshot here -->
+
+The chart dialog allows you to:
+
+1. **Choose a field** to group the issues by:
+   - DBMS
+   - Oracle
+   - Status
+   - Date Posted
+2. **Specify a start date and end date** to filter the issues by **Date Posted**.
+3. **Select up to 5 DBMSs** to display in the chart when grouping issues by **Date Posted**.
+
+> [!NOTE]
+> Issues where the DBMS is "N/A" and Status is "Not a bug" are excluded from the charts.
 
 ### Viewing summary statistics
 
-The **Summary Statistics** page provides a dashboard to analyze bug data across DBMS.
+The **Summary Statistics** page provides an overview of bug reports by status for each DBMS across GitHub issues and SQLancer bug reports.
 
-#### Key Features:
-- **View Modes**:
-  - Toggle between **Table**, **Bar Chart**, and **Line Chart** using icons:
-    - **Table** (📋): Lists DBMS with counts for Open, Total, and Fixed issues.
-    - **Bar Chart** (📊): Visualizes Open and Fixed issues per DBMS in stacked bars.
-    - **Line Chart** (📈): Shows monthly bug trends over time.
-- **Table View**:
-  - Filter by DBMS or use range filters for issue counts.
-  - Sort by clicking column headers.
-- **Bar Chart View**:
-  - Compare Open vs. Fixed issues visually for each DBMS.
-- **Line Chart View**:
-  - **Date Range Filter**: Select **From Month** and **To Month** using date pickers to focus on a specific period.
-  - **DBMS Filter**: Click chips (e.g., "PostgreSQL", "MySQL") to include/exclude specific DBMS.
-  - **Reset**: Click the "Reset" button to clear date and DBMS filters.
-  - Displays a "Total Bugs" line alongside individual DBMS trends.
+You can switch between three view modes to view the statistics: **table**, **bar chart**, and **line chart**.
 
-#### How to Use:
-1. Navigate to **Summary Statistics** from the header.
-2. Choose a view mode:
-   - Use **Table** for raw data.
-   - Switch to **Bar Chart** for a quick visual comparison.
-   - Select **Line Chart** for trend analysis.
-3. In Line Chart mode:
-   - Pick a date range (e.g., Jan 2024 to Apr 2025).
-   - Click DBMS chips to focus on specific databases.
-   - Reset filters if needed.
-4. Hover over chart points for detailed tooltips (e.g., "PostgreSQL, March 2025: 15 bugs").
+<!-- Insert screenshot here -->
+
+<!-- Insert screenshot here -->
+
+<!-- Insert screenshot here -->
+
+The line chart shows the number of bug reports for each DBMS per month and allows you to:
+
+- Filter by a date range
+- Select specific DBMSs using the chips above the chart
 
 ### Viewing supported DBMSs
 
@@ -175,3 +198,8 @@ The **Suppported DBMSs** page shows all database management systems currently su
 - SQLite3
 - TiDB
 - YugabyteDB
+
+## FAQ
+
+**Q**: Why is there no refresh feature for SQLancer bug reports?<br>
+**A**: SQLancer bug reports are compiled manually in the official [SQLancer bugs repository](https://github.com/sqlancer/bugs/blob/master/bugs.json), which is not frequently updated. As such, there is no refresh feature for SQLancer bug reports in the current version of the website.
