@@ -174,7 +174,7 @@ The line chart shows the number of bug reports for each DBMS per month and allow
 
 The **Suppported DBMSs** page shows all database management systems currently supported by SQLancer.
 
-<!-- Insert screenshot here -->
+<img alt="Supported DBMSs" width="800" align="center" src="images/SupportedDBMSs.png">
 
 **Supported DBMSs:**
 
