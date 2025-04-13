@@ -60,9 +60,51 @@ Refer to the `Quick Start` section to get the website running and the `Features`
 
 ### Viewing bug reports
 
+The **GitHub Issues** page consists GitHub Issues that are related to [SQLancer Bugs](https://github.com/search?q=sqlancer&type=issues&s=created&o=desc).
+
+<img alt="GitHub Issues" width="800" align="center" src="images/GiHubIssues.png">
+
+<br/>
+
+The **SQLancer Bug Report** page consists bugs that are listed in [SQLancer Bugs Repository](https://github.com/sqlancer/bugs).
+
+<img alt="SQLancer Bug Reports" width="800" align="center" src="images/SQLancerBugReports.png">
+
 ### Searching and filtering bug reports
 
+You can use the **search bar** to look for bugs in the table. The search is case-insensitive and returns matches in the title, DBMS, test oracle, or status fields.
+
+<img alt="Search" width="800" align="center" src="images/Search.png">
+
+<br/>
+
+Click on the filter toggle button to show or hide filters.
+
+<img alt="Filter Toggle" width="800" align="center" src="images/FilterToggle.png">
+
+<br/>
+
+Alternatively, you can also click on column action to filter by certain column.
+
+<img alt="Filter" width="800" align="center" src="images/Filter.png">
+
 ### Sorting and grouping bug reports
+
+The Title, DBMS, Test Oracle, Status, Date Posted, Last Updated, and Severity columns can be sorted in ascending or descending order. By default, the list is sorted in descending order based on the Date Posted column.
+
+<img alt="Sort Toggle" width="800" align="center" src="images/SortToggle.png">
+
+<br/>
+
+Alternatively, you can also click on column action to sort by certain column.
+
+<img alt="Sort" width="800" align="center" src="images/Sort.png">
+
+<br/>
+
+The DBMS, Test Oracle, Status and Severity columns can be grouped by dragging the move button into the drop region.
+
+<img alt="Sort" width="800" align="center" src="images/Grouping.gif">
 
 ### Editing bug reports
 
