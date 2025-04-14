@@ -55,11 +55,7 @@ export async function initializeDatabase() {
       status VARCHAR(20) NOT NULL,
       created_at DATE NOT NULL,
       test TEXT,
-      severity VARCHAR(20),
-      url_email TEXT,
-      url_bugtracker TEXT,
-      url_fix TEXT,
-      reporter VARCHAR(255) NOT NULL
+      severity VARCHAR(20)
     );
   `;
 

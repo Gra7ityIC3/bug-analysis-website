@@ -78,7 +78,7 @@ You can also filter bug reports by specific columns using the column filters in 
 
 ![Filter Bug Reports](images/FilterBugReports.png)
 
-Alternatively, you can click the **column actions button (⋮)** on a column header to filter by that column.
+Alternatively, you can click the **column actions button** on a column header to filter by that column.
 
 ![Filter Bug Reports Using Column Menu](images/FilterBugReportsUsingColumnMenu.png)
 
@@ -87,14 +87,14 @@ Alternatively, you can click the **column actions button (⋮)** on a column hea
 
 ### Sorting and grouping bug reports
 
-You can sort bug reports by clicking the **column headers** or by clicking the **column actions button (⋮)** and selecting a sort option.
+You can sort bug reports by clicking the **column headers** or by clicking the **column actions button** and selecting a sort option.
 
 ![Sort Bug Reports](images/SortBugReports.png)
 
 > [!TIP]
 > You can sort bug reports by multiple columns by holding down the `shift` key while clicking the column headers.
 
-You can also group bug reports using the **drag handle button** to drag columns into the top toolbar or by clicking the **column actions button (⋮)** and selecting "Group by [Column]".
+You can also group bug reports using the **drag handle button** to drag columns into the top toolbar or by clicking the **column actions button** and selecting "Group by [Column]".
 
 ![Group Bug Reports](images/GroupBugReports.png)
 

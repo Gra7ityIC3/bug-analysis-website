@@ -321,11 +321,6 @@ function SqlancerBugReportsPage() {
             <DeleteIcon />
           </IconButton>
         </Tooltip>
-        <Tooltip title="View bug report">
-          <IconButton onClick={() => window.open(row.original.url_fixed || row.original.url_bugtracker, "_blank")}>
-            <OpenInNewIcon />
-          </IconButton>
-        </Tooltip>
       </Box>
     ),
     renderToolbarInternalActions: ({ table }) => {

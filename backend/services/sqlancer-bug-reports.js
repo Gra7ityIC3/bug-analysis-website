@@ -29,10 +29,6 @@ export async function fetchSqlancerBugReports() {
       const created_at = parse(bug.date, 'd/M/yyyy', new Date()).toISOString();
       const test = bug.test.join('\n');
       const severity = bug.severity || 'Unknown';
-      const url_email = bug.links?.email || null;
-      const url_bugtracker = bug.links?.bugtracker || null;
-      const url_fix = bug.links?.fix || null;
-      const reporter = bug.reporter
 
       let status = bug.status;
 
@@ -49,10 +45,7 @@ export async function fetchSqlancerBugReports() {
         status = 'Open';
       }
 
-      issues.push({
-        title, dbms, oracle, status, created_at, test, severity,
-        url_email, url_bugtracker, url_fix, reporter
-      });
+      issues.push({ title, dbms, oracle, status, created_at, test, severity });
     }
 
     return issues;
