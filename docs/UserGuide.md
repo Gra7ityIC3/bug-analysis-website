@@ -59,51 +59,51 @@ Refer to the [Quick Start](#quick-start) section to get started and the [Feature
 
 ### Viewing bug reports
 
-The **GitHub Issues** page consists GitHub Issues that are related to [SQLancer Bugs](https://github.com/search?q=sqlancer&type=issues&s=created&o=desc).
+You can view bug reports on two separate pages: **GitHub Issues** and **SQLancer Bug Reports**.
 
-<img alt="GitHub Issues" width="800" align="center" src="images/GiHubIssues.png">
+Each page displays a table of bug reports sorted by **Date Posted** in descending order. Bug reports labeled as "Not a bug" are excluded from the table.
 
-<br/>
+![GitHub Issues](images/GitHubIssues.png)
 
-The **SQLancer Bug Report** page consists bugs that are listed in [SQLancer Bugs Repository](https://github.com/sqlancer/bugs).
+1. **Pagination**: Use the buttons at the bottom of the table to navigate between pages. Use the dropdown menu to adjust the number of rows displayed per page.
+2. **Detail panel**: Click the expand button on a row to view its description. Click the expand all button on the column header to expand or collapse all rows at once.
+3. **View issue on GitHub**: Click the open in new button on a row to view the original issue on GitHub in a new tab.
 
-<img alt="SQLancer Bug Reports" width="800" align="center" src="images/SQLancerBugReports.png">
+The **SQLancer Bug Reports** page shares the same layout but excludes links to the original source. The bug reports are retrieved from the official [SQLancer bugs repository](https://github.com/sqlancer/bugs/blob/master/bugs.json).
+
+![SQLancer Bug Reports](images/SQLancerBugReports.png)
 
 ### Searching and filtering bug reports
 
-You can use the **search bar** to look for bugs in the table. The search is case-insensitive and returns matches in the title, DBMS, test oracle, or status fields.
+You can search for bug reports containing specific keywords using the **search box** in the toolbar. This performs a global search across all columns containing text, such as the title and DBMS. Note that the bug report description in the detail panel is not included in the search.
 
-<img alt="Search" width="800" align="center" src="images/Search.png">
+![Search Bug Reports](images/SearchBugReports.png)
 
-<br/>
+You can also filter bug reports by specific columns using the column filters in the column headers.
 
-Click on the filter toggle button to show or hide filters.
+![Filter Bug Reports](images/FilterBugReports.png)
 
-<img alt="Filter Toggle" width="800" align="center" src="images/FilterToggle.png">
+Alternatively, you can click the **column actions button (⋮)** on a column header to filter by that column.
 
-<br/>
+![Filter Bug Reports Using Column Menu](images/FilterBugReportsUsingColumnMenu.png)
 
-Alternatively, you can also click on column action to filter by certain column.
-
-<img alt="Filter" width="800" align="center" src="images/Filter.png">
+> [!NOTE]
+> You may need to scroll horizontally to see all column filters.
 
 ### Sorting and grouping bug reports
 
-The Title, DBMS, Test Oracle, Status, Date Posted, Last Updated, and Severity columns can be sorted in ascending or descending order. By default, the list is sorted in descending order based on the Date Posted column.
+You can sort bug reports by clicking the **column headers** or by clicking the **column actions button (⋮)** and selecting a sort option.
 
-<img alt="Sort Toggle" width="800" align="center" src="images/SortToggle.png">
+![Sort Bug Reports](images/SortBugReports.png)
 
-<br/>
+You can also group bug reports using the **drag handle button (≡)** to drag columns into the toolbar or by clicking the **column actions button (⋮)** and selecting "Group by [Column]".
 
-Alternatively, you can also click on column action to sort by certain column.
+![Group Bug Reports](images/GroupBugReports.png)
 
-<img alt="Sort" width="800" align="center" src="images/Sort.png">
+![Group Bug Reports by DBMS](images/GroupBugReportsByDBMS.png)
 
-<br/>
-
-The DBMS, Test Oracle, Status and Severity columns can be grouped by dragging the move button into the drop region.
-
-<img alt="Sort" width="800" align="center" src="images/Grouping.gif">
+> [!TIP]
+> You can group bug reports by multiple columns by dragging them into the toolbar. The order of the columns determines the grouping hierarchy.
 
 ### Editing bug reports
 
@@ -111,34 +111,40 @@ You can edit the **DBMS**, **Test Oracle**, and **Status** fields of a GitHub is
 
 For **SQLancer bug reports**, only the **Status** and **Severity** fields are editable.
 
-<!-- Insert screenshot here -->
+![Edit GitHub Issue](images/EditGitHubIssue.png)
 
 ### Deleting bug reports
 
 You can delete a bug report by clicking the **delete icon** in the Actions column of the corresponding row. This opens a confirmation dialog asking you to confirm the deletion.
 
-<!-- Insert screenshot here -->
+![Delete Bug Report](images/DeleteBugReport.png)
 
-You can delete multiple bug reports at once by selecting the desired rows using the checkboxes and clicking the **delete icon** in the toolbar. This opens a confirmation dialog asking you to confirm the deletion.
+![Delete Bug Report Confirmation Dialog](images/DeleteBugReportConfirmationDialog.png)
 
-<!-- Insert screenshot here -->
+You can also delete multiple bug reports at once by selecting the desired rows using the checkboxes and clicking the **delete icon** in the toolbar. Similarly, this opens a confirmation dialog asking you to confirm the deletion.
+
+![Delete Bug Reports](images/DeleteBugReports.png)
+
+![Delete Bug Reports Confirmation Dialog](images/DeleteBugReportsConfirmationDialog.png)
 
 > [!CAUTION]
 > Deleting bug reports is permanent and cannot be undone. Make sure you intend to delete them before confirming.
 
-### Refreshing list of GitHub issues
+### Refreshing GitHub issues
 
 You can update the list of GitHub issues by clicking the **refresh icon** in the toolbar. New issues will be added to the top of the table, while existing issues will be updated in place.
 
-<!-- Insert screenshot here -->
+![Refresh GitHub Issues](images/RefreshGitHubIssues.png)
 
 ### Generating charts for selected GitHub issues
 
 You can generate summary charts for selected GitHub issues by selecting the desired rows using the checkboxes and clicking the **chart** icon in the toolbar. This opens a chart dialog where you can configure the chart settings.
 
-<!-- Insert screenshot here -->
+![Generate Charts for Selected GitHub Issues](images/GenerateChartsForSelectedGitHubIssues.png)
 
-<!-- Insert screenshot here -->
+![Chart Dialog for DBMS](images/ChartDialogForDBMS.png)
+
+![Chart Dialog for Date Posted](images/ChartDialogForDatePosted.png)
 
 The chart dialog allows you to:
 
@@ -159,11 +165,11 @@ The **Summary Statistics** page provides an overview of bug reports by status fo
 
 You can switch between three view modes to view the statistics: **table**, **bar chart**, and **line chart**.
 
-<!-- Insert screenshot here -->
+![Table View](images/TableView.png)
 
-<!-- Insert screenshot here -->
+![Bar Chart View](images/BarChartView.png)
 
-<!-- Insert screenshot here -->
+![Line Chart View](images/LineChartView.png)
 
 The line chart shows the number of bug reports for each DBMS per month and allows you to:
 
@@ -174,7 +180,7 @@ The line chart shows the number of bug reports for each DBMS per month and allow
 
 The **Suppported DBMSs** page shows all database management systems currently supported by SQLancer.
 
-<img alt="Supported DBMSs" width="800" align="center" src="images/SupportedDBMSs.png">
+![Supported DBMSs](images/SupportedDBMSs.png)
 
 **Supported DBMSs:**
 
@@ -203,3 +209,6 @@ The **Suppported DBMSs** page shows all database management systems currently su
 
 **Q**: Why is there no refresh feature for SQLancer bug reports?<br>
 **A**: SQLancer bug reports are compiled manually in the official [SQLancer bugs repository](https://github.com/sqlancer/bugs/blob/master/bugs.json), which is not frequently updated. As such, there is no refresh feature for SQLancer bug reports in the current version of the website.
+
+**Q**: Why can’t I generate charts for SQLancer bug reports?<br>
+**A**: Chart generation is only supported for GitHub issues because they are regularly updated and reflect the latest data, whereas SQLancer bug reports are compiled manually and not updated frequently.
