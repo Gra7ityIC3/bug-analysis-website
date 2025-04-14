@@ -1,21 +1,9 @@
 # Bug Analysis Website Group 13
 
-Pull this repository and run the following commands to set it up in development environment
+This website is designed to compile bugs found by SQLancer reported across multiple sources (e.g., GitHub issues) and visualize the aggregated data in charts and tables to gain useful insights.
 
-## Frontend
-```
-cd frontend
-npm install
-npm run dev
-```
+If you are a database system developer or tester, you can use this website to track which bugs have been found or fixed and identify common bugs to better prioritize debugging or testing efforts.
 
-## Backend
-```
-cd backend
-npm install
-node server.js
-```
+If you are a database user, you can explore trends in bug frequency, fix rates, and overall reliability across different database systems.
 
-Currently the website fetches all issues from Github Issues on every load of the frontend through Github API.
-This does not work for long as there is a upper limit for Github API use.
-The database must be implemented next to prevent calling the Github API on every load.
+Refer to the user guide of the latest release [here](https://github.com/NUS-CS3213-AY2425S2/bug-analysis-project-group-13/releases/latest) for more information such as how to get started and explore the features of the website.
