@@ -1,8 +1,3 @@
----
-layout: page
-title: User Guide
----
-
 # Bug Analysis Website User Guide
 
 This website is designed to **compile bugs found by SQLancer** reported across multiple sources (e.g., GitHub issues) and **visualize the aggregated data in charts and tables** to gain useful insights.
@@ -22,7 +17,7 @@ Refer to the [Quick Start](#quick-start) section to get started and the [Feature
    - [Sorting and grouping bug reports](#sorting-and-grouping-bug-reports)
    - [Editing bug reports](#editing-bug-reports)
    - [Deleting bug reports](#deleting-bug-reports)
-   - [Refreshing list of GitHub issues](#refreshing-list-of-github-issues)
+   - [Refreshing GitHub issues](#refreshing-github-issues)
    - [Generating charts for selected GitHub issues](#generating-charts-for-selected-github-issues)
    - [Viewing summary statistics](#viewing-summary-statistics)
    - [Viewing supported DBMSs](#viewing-supported-dbmss)
