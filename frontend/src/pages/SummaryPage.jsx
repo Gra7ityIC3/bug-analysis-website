@@ -201,7 +201,7 @@ function SummaryPage() {
         return entry ? entry.total_bugs : 0;
       }),
       curve: 'linear',
-      showMark: true,
+      showMark: false,
       markSize: 5,
       color: getColorForDBMS(dbms),
     }));
@@ -219,7 +219,7 @@ function SummaryPage() {
         label: 'Total Bugs',
         data: totalBugsData,
         curve: 'linear',
-        showMark: true,
+        showMark: false,
         markSize: 5,
         color: '#000000',
         lineStyle: { strokeWidth: 2, strokeDasharray: '5 5' },
@@ -338,7 +338,7 @@ function SummaryPage() {
                     margin={{ top: 60, right: 140, bottom: 90, left: 70 }}
                     grid={{ horizontal: true }}
                     tooltip={{
-                      trigger: 'item',
+                      trigger: 'axis',
                       formatter: ({ series, dataIndex }) => `${series.label}<br>${dayjs(lineChartData.months[dataIndex]).format('MMMM YYYY')}: ${series.data[dataIndex].toLocaleString()} bugs`
                     }}
                     slotProps={{ legend: { position: { vertical: 'top', horizontal: 'right' }, padding: 0, labelStyle: { fontSize: 12 } } }}

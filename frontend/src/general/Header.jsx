@@ -119,13 +119,15 @@ function Header() {
       <Toolbar sx={{ justifyContent: 'space-between', py: 2.5}}>
         {/* Logo */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <img
-            src={sqlancerImg}
-            alt="SQLancer Logo"
-            style={{ height: '45px', transition: 'transform 0.3s ease', '&:hover': { transform: 'scale(1.1)' } }}
-            onMouseOver={e => (e.currentTarget.style.transform = 'scale(1.1)')}
-            onMouseOut={e => (e.currentTarget.style.transform = 'scale(1)')}
-          />
+          <a href="/" style={{ display: 'flex', alignItems: 'center' }}>
+            <img
+              src={sqlancerImg}
+              alt="SQLancer Logo"
+              style={{ height: '45px', transition: 'transform 0.3s ease', '&:hover': { transform: 'scale(1.1)' } }}
+              onMouseOver={e => (e.currentTarget.style.transform = 'scale(1.1)')}
+              onMouseOut={e => (e.currentTarget.style.transform = 'scale(1)')}
+            />
+          </a>
         </Box>
 
         {/* Desktop Navigation */}
