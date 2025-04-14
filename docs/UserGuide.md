@@ -1,10 +1,10 @@
 # Bug Analysis Website User Guide
 
-This website is designed to **compile bugs found by SQLancer** reported across multiple sources (e.g., GitHub issues) and **visualize the aggregated data in charts and tables** to gain useful insights.
+This website is designed to **compile bugs found by SQLancer** reported across multiple sources such as GitHub issues and **visualize the aggregated data in charts and tables** to gain useful insights.
 
 If you are a **database system developer** or **tester**, you can use this website to track which bugs have been found or fixed and identify common bugs to better prioritize debugging or testing efforts.
 
-If you are a **database user**, you can explore trends in bug frequency, fix rates, and overall reliability across different database systems.
+If you are a **database user**, you can explore trends in bug frequency, rate of bug fixes, and overall reliability across different database systems.
 
 Refer to the [Quick Start](#quick-start) section to get started and the [Features](#features) section to explore what the website can do.
 
@@ -56,13 +56,13 @@ Refer to the [Quick Start](#quick-start) section to get started and the [Feature
 
 You can view bug reports on two separate pages: **GitHub Issues** and **SQLancer Bug Reports**.
 
-Each page displays a table of bug reports sorted by **Date Posted** in descending order. Bug reports labeled as "Not a bug" are excluded from the table.
+Each page displays a table of bug reports sorted by **Date Posted** in descending order. By default, bug reports labeled as "Not a bug" are hidden from the table.
 
 ![GitHub Issues](images/GitHubIssues.png)
 
-1. **Pagination**: Use the buttons at the bottom of the table to navigate between pages. Use the dropdown menu to adjust the number of rows displayed per page.
+1. **Pagination**: Use the buttons on the bottom toolbar to navigate between pages. Use the dropdown menu to adjust the number of rows displayed per page.
 2. **Detail panel**: Click the expand button on a row to view its description. Click the expand all button on the column header to expand or collapse all rows at once.
-3. **View issue on GitHub**: Click the open in new button on a row to view the original issue on GitHub in a new tab.
+3. **View issue on GitHub**: Click the open in new icon on a row to view the original issue on GitHub in a new tab.
 
 The **SQLancer Bug Reports** page shares the same layout but excludes links to the original source. The bug reports are retrieved from the official [SQLancer bugs repository](https://github.com/sqlancer/bugs/blob/master/bugs.json).
 
@@ -70,7 +70,7 @@ The **SQLancer Bug Reports** page shares the same layout but excludes links to t
 
 ### Searching and filtering bug reports
 
-You can search for bug reports containing specific keywords using the **search box** in the toolbar. This performs a global search across all columns containing text, such as the title and DBMS. Note that the bug report description in the detail panel is not included in the search.
+You can search for bug reports containing specific keywords using the **search box** in the top toolbar. This performs a global search across all columns containing text, such as the title and test oracle. Note that the bug report description in the detail panel is not included in the search.
 
 ![Search Bug Reports](images/SearchBugReports.png)
 
@@ -94,14 +94,14 @@ You can sort bug reports by clicking the **column headers** or by clicking the *
 > [!TIP]
 > You can sort bug reports by multiple columns by holding down the `shift` key while clicking the column headers.
 
-You can also group bug reports using the **drag handle button (≡)** to drag columns into the toolbar or by clicking the **column actions button (⋮)** and selecting "Group by [Column]".
+You can also group bug reports using the **drag handle button** to drag columns into the top toolbar or by clicking the **column actions button (⋮)** and selecting "Group by [Column]".
 
 ![Group Bug Reports](images/GroupBugReports.png)
 
 ![Group Bug Reports by DBMS](images/GroupBugReportsByDBMS.png)
 
 > [!TIP]
-> You can group bug reports by multiple columns by dragging them into the toolbar. The order of the columns determines the grouping hierarchy.
+> You can group bug reports by multiple columns by dragging them into the toolbar. The order of the columns determines the grouping order.
 
 ### Editing bug reports
 
@@ -119,7 +119,7 @@ You can delete a bug report by clicking the **delete icon** in the Actions colum
 
 ![Delete Bug Report Confirmation Dialog](images/DeleteBugReportConfirmationDialog.png)
 
-You can also delete multiple bug reports at once by selecting the desired rows using the checkboxes and clicking the **delete icon** in the toolbar. Similarly, this opens a confirmation dialog asking you to confirm the deletion.
+You can also delete multiple bug reports at once by selecting the rows you want to delete using the checkboxes and clicking the **delete icon** in the top toolbar. Similarly, this opens a confirmation dialog asking you to confirm the deletion.
 
 ![Delete Bug Reports](images/DeleteBugReports.png)
 
@@ -130,13 +130,13 @@ You can also delete multiple bug reports at once by selecting the desired rows u
 
 ### Refreshing GitHub issues
 
-You can update the list of GitHub issues by clicking the **refresh icon** in the toolbar. New issues will be added to the top of the table, while existing issues will be updated in place.
+You can update the list of GitHub issues by clicking the **refresh icon** in the top toolbar. New issues will be added to the top of the table, while existing issues will be updated in place.
 
 ![Refresh GitHub Issues](images/RefreshGitHubIssues.png)
 
 ### Generating charts for selected GitHub issues
 
-You can generate summary charts for selected GitHub issues by selecting the desired rows using the checkboxes and clicking the **chart** icon in the toolbar. This opens a chart dialog where you can configure the chart settings.
+You can generate summary charts for selected GitHub issues by selecting the rows you want using the checkboxes and clicking the **chart icon** in the top toolbar. This opens a chart dialog that shows different charts based on the selected field.
 
 ![Generate Charts for Selected GitHub Issues](images/GenerateChartsForSelectedGitHubIssues.png)
 
@@ -151,7 +151,7 @@ The chart dialog allows you to:
    - Oracle
    - Status
    - Date Posted
-2. **Specify a start date and end date** to filter the issues by **Date Posted**.
+2. **Specify a start date and end date** to filter issues grouped by **Date Posted**.
 3. **Select up to 5 DBMSs** to display in the chart when grouping issues by **Date Posted**.
 
 > [!NOTE]
