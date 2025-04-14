@@ -1,4 +1,4 @@
-# Bug Analysis Website User Guide
+# Bug Analysis Website Documentation
 
 This website is designed to **compile bugs found by SQLancer** reported across multiple sources such as GitHub issues and **visualize the aggregated data in charts and tables** to gain useful insights.
 
