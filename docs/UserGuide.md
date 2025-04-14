@@ -96,6 +96,9 @@ You can sort bug reports by clicking the **column headers** or by clicking the *
 
 ![Sort Bug Reports](images/SortBugReports.png)
 
+> [!TIP]
+> You can sort bug reports by multiple columns by holding down the `shift` key while clicking the column headers.
+
 You can also group bug reports using the **drag handle button (≡)** to drag columns into the toolbar or by clicking the **column actions button (⋮)** and selecting "Group by [Column]".
 
 ![Group Bug Reports](images/GroupBugReports.png)
