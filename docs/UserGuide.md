@@ -1,4 +1,4 @@
-# Bug Analysis Website Documentation
+# Bug Analysis Website User Guide
 
 This website is designed to **compile bugs found by SQLancer** reported across multiple sources such as GitHub issues and **visualize the aggregated data in charts and tables** to gain useful insights.
 
@@ -64,7 +64,7 @@ Each page displays a table of bug reports sorted by **Date Posted** in descendin
 2. **Detail panel**: Click the expand button on a row to view its description. Click the expand all button on the column header to expand or collapse all rows at once.
 3. **View issue on GitHub**: Click the open in new icon on a row to view the original issue on GitHub in a new tab.
 
-The **SQLancer Bug Reports** page shares the same layout but excludes links to the original source. The bug reports are retrieved from the official [SQLancer bugs repository](https://github.com/sqlancer/bugs/blob/master/bugs.json).
+The **SQLancer Bug Reports** page shares the same layout as the **GitHub Issues** page but excludes links to the original source. The bug reports are retrieved from the official [SQLancer bugs repository](https://github.com/sqlancer/bugs/blob/master/bugs.json).
 
 ![SQLancer Bug Reports](images/SQLancerBugReports.png)
 
