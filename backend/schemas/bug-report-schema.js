@@ -5,7 +5,7 @@ export const BugReport = z.object({
     'Citus', 'ClickHouse', 'CnosDB', 'CockroachDB', 'Databend', 'DataFusion',
     'Doris', 'DuckDB', 'H2', 'HSQLDB', 'MariaDB', 'Materialize', 'MySQL',
     'OceanBase', 'PostgreSQL', 'Presto', 'QuestDB', 'SQLite3', 'TiDB', 'YugabyteDB',
-    'ArangoDB', 'Cosmos', 'MongoDB', 'StoneDB', // Previously supported DBMSs
+    'ArangoDB', 'Cosmos', 'MongoDB', 'StarRocks', 'StoneDB', // Previously supported DBMSs
     'N/A',
   ]),
   // Oracle values obtained from:

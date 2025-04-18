@@ -86,7 +86,7 @@ async function insertGitHubIssuesIfEmpty(client) {
   const result = await client.query(`SELECT 1 FROM ${GITHUB_ISSUES_TABLE} LIMIT 1`);
 
   if (result.rowCount) {
-    console.log(`Data already exists in ${GITHUB_ISSUES_TABLE}. Skipping fetch from GitHub.`);
+    console.log(`Skipping fetch from GitHub: Data already exists in ${GITHUB_ISSUES_TABLE}.`);
     return;
   }
 
@@ -104,7 +104,7 @@ async function insertSqlancerBugReportsIfEmpty(client) {
   const result = await client.query(`SELECT 1 FROM ${SQLANCER_BUG_REPORTS_TABLE} LIMIT 1`);
 
   if (result.rowCount) {
-    console.log(`Data already exists in ${SQLANCER_BUG_REPORTS_TABLE}. Skipping fetch from GitHub.`);
+    console.log(`Skipping fetch from GitHub: Data already exists in ${SQLANCER_BUG_REPORTS_TABLE}.`);
     return;
   }
 

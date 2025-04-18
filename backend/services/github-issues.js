@@ -23,7 +23,7 @@ export async function fetchAllGitHubIssues() {
     if (!issues.length) break;
 
     allIssues.push(...issues);
-    lastUpdatedAt = issues[issues.length - 1].updated_at;
+    lastUpdatedAt = issues.at(-1).updated_at;
   }
 
   return allIssues;
