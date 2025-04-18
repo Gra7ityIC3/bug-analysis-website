@@ -86,7 +86,11 @@ async function getLinkedPullRequestsAndCommits(params) {
         });
 
         const [subject, body] = commit.commit.message.split(/\n\n(.*)/s);
-        commits.push({ subject, body });
+
+        commits.push({
+          subject,
+          body: body ?? 'No body provided.',
+        });
       } catch (error) {
         // Ignore 422 errors caused by commits not found in the main repository (e.g., forks).
         if (error.status !== 422) {
