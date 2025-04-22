@@ -26,14 +26,14 @@ Refer to the [Quick Start](#quick-start) section to get started and the [Feature
 ## Quick Start
 
 1. Ensure you have [Node.js](https://nodejs.org/en/download) version 18 or later installed.
-2. Download and unzip the source code archive file from [here](https://github.com/NUS-CS3213-AY2425S2/bug-analysis-project-group-13/releases/latest).
+2. Download and unzip the source code archive file from [here](https://github.com/Gra7ityIC3/bug-analysis-website/releases/latest).
 3. Download the `.env` file from [Google Drive](https://drive.google.com/file/d/1h-SdR_qSfQC5Fzs8qkBQ3JCDehea29-l/view?usp=sharing) and save it in the `backend/` directory.
 
    > When downloading the `.env` file, make sure the filename includes the leading `.`
 
 4. Open two command terminals and `cd` to the project directory.
 
-   On the first terminal, run the following commands:
+   In the first terminal, run the following commands:
 
    ```
    cd frontend
@@ -41,13 +41,14 @@ Refer to the [Quick Start](#quick-start) section to get started and the [Feature
    npm run dev
    ```
 
-   On the second terminal, run the following commands:
+   In the second terminal, run the following commands:
 
    ```
    cd backend
    npm install
    node server.js
    ```
+
 5. The website can be accessed at http://localhost:5173/.
 
 ## Features
@@ -62,7 +63,7 @@ Each page displays a table of bug reports sorted by **Date Posted** in descendin
 
 1. **Pagination**: Use the buttons on the bottom toolbar to navigate between pages. Use the dropdown menu to adjust the number of rows displayed per page.
 2. **Detail panel**: Click the expand button on a row to view its description. Click the expand all button on the column header to expand or collapse all rows at once.
-3. **View issue on GitHub**: Click the open in new icon on a row to view the original issue on GitHub in a new tab.
+3. **View issue on GitHub**: Click the external link icon on a row to view the original issue on GitHub in a new tab.
 
 The **SQLancer Bug Reports** page shares the same layout as the **GitHub Issues** page but excludes links to the original source. The bug reports are retrieved from the official [SQLancer bugs repository](https://github.com/sqlancer/bugs/blob/master/bugs.json).
 
@@ -92,7 +93,7 @@ You can sort bug reports by clicking the **column headers** or by clicking the *
 ![Sort Bug Reports](images/SortBugReports.png)
 
 > [!TIP]
-> You can sort bug reports by multiple columns by holding down the `shift` key while clicking the column headers.
+> You can sort bug reports by multiple columns by holding down the <kbd>shift</kbd> key while clicking the column headers.
 
 You can also group bug reports using the **drag handle button** to drag columns into the top toolbar or by clicking the **column actions button** and selecting "Group by [Column]".
 
